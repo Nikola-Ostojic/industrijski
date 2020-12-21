@@ -154,7 +154,7 @@ int main()
 
 			if (sResult == 0)
 			{
-				printf("Time: %d\n", ++count);
+				
 				Sleep(1000);
 			}
 			else if (sResult == SOCKET_ERROR)
@@ -171,20 +171,8 @@ int main()
 
 					if (iResult > 0)	// Check if message is successfully received
 					{
-						if (strlen(dataBuffer) <= 5)
-						{
-							dataBuffer[iResult] = '\0';
-							int ID = atoi(dataBuffer);
-							Services[registeredServices] = ID;
-							registeredServices++;
-							printf("Registrovan servis: %s\n", dataBuffer);
-							count = 0;
-						}
-						else
-						{
-							printf("Stigla neka data!\n");
-							printf(dataBuffer);
-						}
+						dataBuffer[iResult] = '\0';
+						printf(dataBuffer);
 
 					}
 					else if (iResult == 0)	// Check if shutdown command is received
