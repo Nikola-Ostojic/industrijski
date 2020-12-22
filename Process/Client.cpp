@@ -116,7 +116,7 @@ int main()
 	}
 
 
-	while (true)
+	while(true)
 	{
 		char dataBuffer[BUFFER_SIZE];
 		printf("Unesite podatak za slanje");

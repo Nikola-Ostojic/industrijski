@@ -29,6 +29,19 @@ DWORD WINAPI procesingClient(LPVOID par)
 }
 
 
+int servicesContains(int services[], int currentService, int serviceCount)
+{
+	int i = 0;
+	do
+	{
+		if (services[i] == currentService)
+		{
+			return 1;
+		}
+	} while (i != serviceCount);
+	return 0;
+}
+
 // TCP server that use blocking sockets
 int main()
 {
@@ -154,7 +167,7 @@ int main()
 
 			if (sResult == 0)
 			{
-				
+
 				Sleep(1000);
 			}
 			else if (sResult == SOCKET_ERROR)
@@ -172,7 +185,20 @@ int main()
 					if (iResult > 0)	// Check if message is successfully received
 					{
 						dataBuffer[iResult] = '\0';
+						
+						
+						if (strlen(dataBuffer) == 2)
+						{
+							if (!servicesContains(Services, (int)atoi(dataBuffer), registeredServices))
+							{
+								Services[registeredServices] = (int)atoi(dataBuffer);
+								registeredServices++;
+								printf("Registered new service:");
+							}
+						}
 						printf(dataBuffer);
+						printf("\n");
+						printf("dataBuffer length:%d\n", strlen(dataBuffer));
 
 					}
 					else if (iResult == 0)	// Check if shutdown command is received
