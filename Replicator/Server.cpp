@@ -14,12 +14,14 @@
 #pragma comment (lib, "Mswsock.lib")
 #pragma comment (lib, "AdvApi32.lib")
 
-#define SERVER_PORT 27016
+#define SERVER_IP_ADDRESS "127.0.0.1"
+#define SERVER_PORT 27017
+#define SERVER_PORT2 27018
 #define BUFFER_SIZE 256
 
 
 
-
+SOCKET connectSocket = INVALID_SOCKET;
 
 DWORD WINAPI procesingClient(LPVOID par)
 {
@@ -28,6 +30,19 @@ DWORD WINAPI procesingClient(LPVOID par)
 	return 0;
 }
 
+
+int servicesContains(int services[], int currentService, int serviceCount)
+{
+	int i = 0;
+	do
+	{
+		if (services[i] == currentService)
+		{
+			return 1;
+		}
+	} while (i != serviceCount);
+	return 0;
+}
 
 // TCP server that use blocking sockets
 int main()
@@ -60,12 +75,17 @@ int main()
 
 
 	// Initialize serverAddress structure used by bind
+
 	sockaddr_in serverAddress;
 	memset((char*)&serverAddress, 0, sizeof(serverAddress));
 	serverAddress.sin_family = AF_INET;				// IPv4 address family
-	serverAddress.sin_addr.s_addr = INADDR_ANY;		// Use all available addresses
+	serverAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);		// Use all available addresses
 	serverAddress.sin_port = htons(SERVER_PORT);	// Use specific port
 
+	sockaddr_in clientAddress;
+	clientAddress.sin_family = AF_INET;								// IPv4 protocol
+	clientAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);	// ip address of server
+	clientAddress.sin_port = htons(SERVER_PORT2);
 
 	// Create a SOCKET for connecting to server
 	listenSocket = socket(AF_INET,      // IPv4 address family
@@ -154,7 +174,7 @@ int main()
 
 			if (sResult == 0)
 			{
-				
+
 				Sleep(1000);
 			}
 			else if (sResult == SOCKET_ERROR)
@@ -171,8 +191,39 @@ int main()
 
 					if (iResult > 0)	// Check if message is successfully received
 					{
+
+						if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
+						{
+							printf("Unable to connect to server.\n");
+							closesocket(connectSocket);
+							WSACleanup();
+							return 1;
+						}
 						dataBuffer[iResult] = '\0';
+						
+						
+						if (strlen(dataBuffer) == 2)
+						{
+							if (!servicesContains(Services, (int)atoi(dataBuffer), registeredServices))
+							{
+								Services[registeredServices] = (int)atoi(dataBuffer);
+								registeredServices++;
+								printf("Registered new service:");
+							}
+						}
 						printf(dataBuffer);
+						printf("\n");
+						printf("dataBuffer length:%d\n", strlen(dataBuffer));
+
+						int iResult = send(connectSocket, dataBuffer, (int)strlen(dataBuffer), 0);
+						if (iResult == SOCKET_ERROR)
+						{
+							printf("send failed with error: %d\n", WSAGetLastError());
+							closesocket(connectSocket);
+							WSACleanup();
+							return 1;
+						}
+
 
 					}
 					else if (iResult == 0)	// Check if shutdown command is received
