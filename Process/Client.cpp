@@ -26,6 +26,38 @@ SOCKET listenSocket = INVALID_SOCKET;
 // Socket used for communication with client
 SOCKET acceptedSocket = INVALID_SOCKET;
 
+DWORD WINAPI clientRecieve(LPVOID lpParam)
+{
+	char buffer[BUFFER_SIZE] = { 0 };
+	SOCKET server = *(SOCKET*)lpParam;
+
+	while (true)
+	{
+		if (recv(server, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
+		{
+			printf("Socket error: %d\n", WSAGetLastError());
+			return -1;
+		}
+
+		printf("Server:%s", buffer);
+		return 1;
+	}
+}
+
+DWORD WINAPI clientSend(LPVOID lpParam)
+{
+	char buffer[BUFFER_SIZE] = { 0 };
+	SOCKET server = *(SOCKET*)lpParam;
+	while (true)
+	{
+		printf("Poruka za slanje:");
+		gets_s(buffer);
+		if (send(server, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
+			return -1;
+	
+	}
+}
+
 
 int RegisterService(int ServiceID)
 {
@@ -52,8 +84,8 @@ int SendData(int ServiceID, void* data, int dataSize)
 	char stringID[3];
 	itoa(ServiceID, stringID, 10);
 	char* dataToSend = (char*)malloc(3 + dataSize);
-	memcpy(dataToSend, stringID, 3);
-	memcpy(dataToSend + 3, data, dataSize);
+	memcpy(dataToSend, stringID, strlen(stringID));
+	memcpy(dataToSend + strlen(stringID), data, dataSize);
 	int iResult = send(connectSocket, dataToSend, (int)strlen(dataToSend), 0);
 	if (iResult == SOCKET_ERROR)
 	{
@@ -65,10 +97,8 @@ int SendData(int ServiceID, void* data, int dataSize)
 
 }
 
-// TCP client that use blocking sockets
 int main()
 {
-
 	int iResult = 0;
 
 	WSADATA wsaData;
@@ -87,6 +117,49 @@ int main()
 		WSACleanup();
 		return 1;
 	}
+	sockaddr_in serverAddress;
+	serverAddress.sin_family = AF_INET;								// IPv4 protocol
+	serverAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);	// ip address of server
+	serverAddress.sin_port = htons(SERVER_PORT);					// server port
+
+	if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
+	{
+		printf("Unable to connect to server.\n");
+		closesocket(connectSocket);
+		WSACleanup();
+		return 1;
+	}
+
+	while (true) {
+		DWORD tid;
+		HANDLE t1 = CreateThread(NULL, 0, clientSend, &connectSocket, 0, &tid);
+	}
+	
+
+	// Shutdown the connection since we're done
+	iResult = shutdown(connectSocket, SD_BOTH);
+	closesocket(connectSocket);
+	WSACleanup();
+	printf("Ugasen socket");
+	return 0;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+/*
+// TCP client that use blocking sockets
+int main()
+{
+
+	int iResult = 0;
+
+	WSADATA wsaData;
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		printf("WSAStartup failed with error: %d\n", WSAGetLastError());
+		return 1;
+	}
+
 	sockaddr_in clientAddress;
 	clientAddress.sin_family = AF_INET;								// IPv4 protocol
 	clientAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);	// ip address of server
@@ -99,35 +172,18 @@ int main()
 	serverAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);		// Use all available addresses
 	serverAddress.sin_port = htons(SERVER_PORT);	// Use specific port		// server port
 
-	listenSocket = socket(AF_INET,      // IPv4 address family
-		SOCK_STREAM,  // Stream socket
-		IPPROTO_TCP); // TCP protocol
-	if (listenSocket == INVALID_SOCKET)
+
+	connectSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	if (connectSocket == INVALID_SOCKET)
 	{
 		printf("socket failed with error: %ld\n", WSAGetLastError());
 		WSACleanup();
 		return 1;
 	}
-	int iResult2;
-	// Setup the TCP listening socket - bind port number and local address to socket
-	iResult2 = bind(listenSocket, (struct sockaddr*) &clientAddress, sizeof(serverAddress));
-	if (iResult == SOCKET_ERROR)
-	{
-		printf("bind failed with error: %d\n", WSAGetLastError());
-		closesocket(listenSocket);
-		WSACleanup();
-		return 1;
-	}
-	iResult2 = listen(listenSocket, SOMAXCONN);
-	if (iResult2 == SOCKET_ERROR)
-	{
-		printf("listen failed with error: %d\n", WSAGetLastError());
-		closesocket(listenSocket);
-		WSACleanup();
-		return 1;
-	}
+	
 
-	printf("Server socket is set to listening mode. Waiting for new connection requests.\n");
+	
 	if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
 	{
 		printf("Unable to connect to server.\n");
@@ -147,6 +203,37 @@ int main()
 	if (registered == 0)
 	{
 		printf("Uspesna registracija!\n");
+		
+		listenSocket = socket(AF_INET,      // IPv4 address family
+			SOCK_STREAM,  // Stream socket
+			IPPROTO_TCP); // TCP protocol
+		if (listenSocket == INVALID_SOCKET)
+		{
+			printf("socket failed with error: %ld\n", WSAGetLastError());
+			WSACleanup();
+			return 1;
+		}
+		int iResult2;
+		// Setup the TCP listening socket - bind port number and local address to socket
+		iResult2 = bind(listenSocket, (struct sockaddr*) &clientAddress, sizeof(serverAddress));
+		if (iResult == SOCKET_ERROR)
+		{
+			printf("bind failed with error: %d\n", WSAGetLastError());
+			closesocket(listenSocket);
+			WSACleanup();
+			return 1;
+		}
+		iResult2 = listen(listenSocket, SOMAXCONN);
+		if (iResult2 == SOCKET_ERROR)
+		{
+			printf("listen failed with error: %d\n", WSAGetLastError());
+			closesocket(listenSocket);
+			WSACleanup();
+			return 1;
+		}
+
+		printf("Server socket is set to listening mode. Waiting for new connection requests.\n");
+		
 	}
 	else
 	{
@@ -159,30 +246,21 @@ int main()
 	}
 
 
-	while(true)
+	while (true)
 	{
 		char dataBuffer[BUFFER_SIZE];
-		printf("Unesite podatak za slanje");
+		printf("Unesite podatak za slanje:");
 		gets_s(dataBuffer, BUFFER_SIZE);
 		int result = SendData(currentProccessID, (void*)dataBuffer, (int)strlen(dataBuffer));
-		break;
 
-
-
-
-
-	}
-	do
-	{
-		// Struct for information about connected client
 		sockaddr_in clientAddr;
 
 		int clientAddrSize = sizeof(struct sockaddr_in);
 
-		// Accept new connections from clients 
+		// Accept new connections from clients
 		acceptedSocket = accept(listenSocket, (struct sockaddr *)&clientAddr, &clientAddrSize);
 
-		// Check if accepted socket is valid 
+		// Check if accepted socket is valid
 		if (acceptedSocket == INVALID_SOCKET)
 		{
 			printf("accept failed with error: %d\n", WSAGetLastError());
@@ -192,8 +270,6 @@ int main()
 		}
 
 		printf("\nNew client request accepted. Client address: %s : %d\n", inet_ntoa(clientAddr.sin_addr), ntohs(clientAddr.sin_port));
-
-
 		unsigned long mode = 1;
 		if (ioctlsocket(acceptedSocket, FIONBIO, &mode) != 0)
 		{
@@ -204,7 +280,7 @@ int main()
 			return 0;
 		}
 		int count = 0;
-		char dataBuffer[BUFFER_SIZE];
+
 		while (true)
 		{
 			fd_set readfds;
@@ -235,40 +311,26 @@ int main()
 			{
 				if (FD_ISSET(acceptedSocket, &readfds))
 				{
-					int iResult = recv(acceptedSocket, dataBuffer, BUFFER_SIZE, 0);
 
-					if (iResult > 0)	// Check if message is successfully received
-					{
-						dataBuffer[iResult] = '\0';
+					DWORD tid;
+					HANDLE t1 = CreateThread(NULL, 0, clientRecieve, &connectSocket, 0, &tid);
 
-						printf("Message from server:");
-						printf(dataBuffer);
-						printf("\n");
-						printf("dataBuffer length:%d\n", strlen(dataBuffer));
-
-					}
-					else if (iResult == 0)	// Check if shutdown command is received
-					{
-						// Connection was closed successfully
-						printf("Connection closed.\n");
-						closesocket(acceptedSocket);
-					}
-					/*else	// There was an error during recv
-					{
-
-						printf("recv failed with error: %d\n", WSAGetLastError());
-						closesocket(*acceptedSocket);
-					}*/
 				}
 			}
 
 
-			// Receive data until the client shuts down the connection
+			
 
 
 		}
 
-	} while (true);
+
+
+
+
+
+	}
+	
 
 	// Shutdown the connection since we're done
 	iResult = shutdown(connectSocket, SD_BOTH);
@@ -277,3 +339,4 @@ int main()
 	printf("Ugasen socket");
 	return 0;
 }
+*/

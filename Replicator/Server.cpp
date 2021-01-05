@@ -23,11 +23,36 @@
 
 SOCKET connectSocket = INVALID_SOCKET;
 
-DWORD WINAPI procesingClient(LPVOID par)
+DWORD WINAPI serverReceive(LPVOID lpParam)
 {
-	SOCKET* acceptedSocket = (SOCKET*)par;
+	char buffer[BUFFER_SIZE] = { 0 };
 
-	return 0;
+	SOCKET client = *(SOCKET*)lpParam;
+
+	while (true)
+	{
+		if (recv(client, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
+			return -1;
+		printf("client:%s\n", buffer);
+		memset(buffer, 0, sizeof(buffer));
+		return 1;
+
+	}
+}
+
+DWORD WINAPI serverSend(LPVOID lpParam)
+{
+	char buffer[BUFFER_SIZE];
+	SOCKET client = *(SOCKET*)lpParam;
+
+	while (true)
+	{
+		gets_s(buffer);
+		if (send(client, buffer, sizeof(buffer), 0) == SOCKET_ERROR)
+			return -1;
+		memset(buffer, 0, sizeof(buffer));
+		return 1;
+	}
 }
 
 
@@ -72,8 +97,6 @@ int main()
 		printf("WSAStartup failed with error: %d\n", WSAGetLastError());
 		return 1;
 	}
-
-
 	// Initialize serverAddress structure used by bind
 
 	sockaddr_in serverAddress;
@@ -86,6 +109,8 @@ int main()
 	clientAddress.sin_family = AF_INET;								// IPv4 protocol
 	clientAddress.sin_addr.s_addr = inet_addr(SERVER_IP_ADDRESS);	// ip address of server
 	clientAddress.sin_port = htons(SERVER_PORT2);
+
+	
 
 	// Create a SOCKET for connecting to server
 	listenSocket = socket(AF_INET,      // IPv4 address family
@@ -156,7 +181,7 @@ int main()
 			return 0;
 		}
 		int count = 0;
-		char dataBuffer[BUFFER_SIZE];
+		//char dataBuffer[BUFFER_SIZE];
 		while (true)
 		{
 			fd_set readfds;
@@ -187,18 +212,18 @@ int main()
 			{
 				if (FD_ISSET(acceptedSocket, &readfds))
 				{
+					DWORD tid;
+					HANDLE t1 = CreateThread(NULL, 0, serverReceive, &acceptedSocket, 0, &tid);
+					
+					HANDLE t2 = CreateThread(NULL, 0, serverSend, &acceptedSocket, 0, &tid);
+
+					/*
 					int iResult = recv(acceptedSocket, dataBuffer, BUFFER_SIZE, 0);
 
 					if (iResult > 0)	// Check if message is successfully received
 					{
 
-						if (connect(connectSocket, (SOCKADDR*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR)
-						{
-							printf("Unable to connect to server.\n");
-							closesocket(connectSocket);
-							WSACleanup();
-							return 1;
-						}
+						
 						dataBuffer[iResult] = '\0';
 						
 						
@@ -214,6 +239,15 @@ int main()
 						printf(dataBuffer);
 						printf("\n");
 						printf("dataBuffer length:%d\n", strlen(dataBuffer));
+
+						if (connect(connectSocket, (SOCKADDR*)&clientAddress, sizeof(clientAddress)) == SOCKET_ERROR)
+						{
+							printf("Unable to connect to server.\n");
+							closesocket(connectSocket);
+							WSACleanup();
+							return 1;
+						}
+
 
 						int iResult = send(connectSocket, dataBuffer, (int)strlen(dataBuffer), 0);
 						if (iResult == SOCKET_ERROR)
@@ -238,6 +272,7 @@ int main()
 						printf("recv failed with error: %d\n", WSAGetLastError());
 						closesocket(*acceptedSocket);
 					}*/
+					
 				}
 			}
 
