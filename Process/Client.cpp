@@ -131,8 +131,10 @@ int main()
 	}
 
 	while (true) {
-		DWORD tid;
-		HANDLE t1 = CreateThread(NULL, 0, clientSend, &connectSocket, 0, &tid);
+		printf("Poruka za slanje:");
+		char dataBuffer[BUFFER_SIZE];
+		gets_s(dataBuffer);
+		int result = SendData(0, dataBuffer, strlen(dataBuffer));
 	}
 	
 
