@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DataNode.h" />
     <ClInclude Include="Limitations.h" />
     <ClInclude Include="RoundBuffer.h" />
     <ClInclude Include="Serializer.h" />

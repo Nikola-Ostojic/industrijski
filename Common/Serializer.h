@@ -5,12 +5,12 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "RoundBuffer.h"
+#include "DataNode.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-char* Serialize(node* Node);
-node* Deserialize(char *buffer);
+char* Serialize(Node* node);
+Node* Deserialize(char *buffer);
 
 #endif // H

@@ -1,24 +1,31 @@
 #pragma once
+
+#ifndef Roundbuff_H
+#define Roundbuff_H
+
+#include "DataNode.h"
 #include <stdio.h>
-#include "Limitations.h"
-#include <string.h>
 #include <stdlib.h>
-#include <stdbool.h>
+#include <string.h>
+#include <windows.h>
 
-struct node {
-	int processID;
-	int nodeID;
-	char* data;
-	int size_of_data;
-	struct node* next;
-};
+typedef struct RoundBuffer {
+	unsigned int head;
+	unsigned int tail;
+	bool isFull;
+	unsigned int size;
+	Node **entries;
+	CRITICAL_SECTION criticalSection;
+}RoundBuffer;
 
-struct node* head = NULL;
-struct node* current = NULL;
-struct node* tail = NULL;
-int current_id = 0;
+RoundBuffer *createRoundBuffer(void);
+void deleteRBuffer(RoundBuffer *rBuffer);
+void resizeRBuffer(RoundBuffer *rBuffer);
+bool isEmpty(RoundBuffer *rBuffer);
+bool insertInRBuffer(RoundBuffer *rBuffer, Node *node);
+Node *removeFromRBuffer(RoundBuffer *rBuffer);
+Node *lookHead(RoundBuffer *rBuffer);
+unsigned int getSize(RoundBuffer *rBuffer);
 
-void Init(void* data, int size);
-void addNode(void* data, int size);
-void deleteNode(int id);
-void emptyBuffer();
+#endif // !Queue_H
+
