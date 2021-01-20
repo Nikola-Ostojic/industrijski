@@ -1,19 +1,21 @@
 #include "Serializer.h"
 
-char* Serialize(node* Node)
+char* Serialize(Node* node)
 {
 	char *buffer = (char*)malloc(sizeof(Node));
-	*((int *)buffer) = Node->processID;	
-	strcpy(buffer + sizeof(int),Node->data);
+	*((int *)buffer) = node->processId;
+	*((tm *)(buffer + sizeof(int))) = node->timeStamp;
+	strcpy(buffer + sizeof(tm) + sizeof(int), node->value);
 
 	return buffer;
 }
 
-node* Deserialize(char *buffer)
+Node* Deserialize(char *buffer)
 {
-	node *newNode = (node*)malloc(sizeof(node));
-	newNode->processID = *((int *)buffer);	
-	strcpy(newNode->data, buffer +sizeof(int));
+	Node *newNode = (Node*)malloc(sizeof(Node));
+	newNode->processId = *((int *)buffer);
+	newNode->timeStamp = *((tm *)(buffer + sizeof(int)));
+	strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
 
 	return newNode;
 }
