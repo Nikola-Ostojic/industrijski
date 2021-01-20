@@ -8,20 +8,20 @@
 #include "../Common/SocketFunctions.h"
 #include"../Common/RoundBuffer.h"
 #include "../Common/Serializer.h"
-#include "../Common/ClientNode.h"
+#include "../Common/DataNode.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
-#define MESSAGE_SIZE sizeof(CNode)
+#define MESSAGE_SIZE sizeof(Node)
 
 typedef struct receiveParameters {
 	SOCKET *listenSocket;
-	node *Node;
+	RoundBuffer *roundbuffer;
 }ReceiveParameters;
 
 typedef struct sendBufferParameters {
 	SOCKET *connectSocket;
-	node *Node;
+	RoundBuffer *roundbuffer;
 }SendBufferParameters;
 
 enum TipServera {
@@ -40,10 +40,10 @@ int main(int argc, char **argv)
 
 	int iResult;
 
-	//node *node = NULL;
-	queue = createQueue();
+	RoundBuffer *rbuffer = NULL;
+	rbuffer = createRoundBuffer();
 
-	if (queue == NULL)
+	if (rbuffer == NULL)
 		return 1;
 
 	TipServera tipServera;
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
 		SendBufferParameters parameters;
 		parameters.connectSocket = &connectSocket;
-		parameters.queue = queue;
+		parameters.roundbuffer = rbuffer;
 
 		//Pravljenje niti za slanje pomocnom serveru
 		DWORD dwThreadId;
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
 			ReceiveParameters parameters;
 			parameters.listenSocket = &listenSocket;
-			parameters.queue = queue;
+			parameters.roundbuffer = rbuffer;
 
 			DWORD dwThreadId;
 			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
 		ReceiveParameters parameters;
 		parameters.listenSocket = &listenSocketServer;
-		parameters.queue = queue;
+		parameters.roundbuffer = rbuffer;
 
 		DWORD dwThreadId;
 		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
 
 			ReceiveParameters parameters;
 			parameters.listenSocket = &listenSocketClients;
-			parameters.queue = queue;
+			parameters.roundbuffer = rbuffer;
 
 			DWORD dwThreadId;
 			CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
 #pragma endregion
 	}
 
-	deleteQueue(queue);
+	deleteRBuffer(rbuffer);
 	WSACleanup();
 
 	getchar();
@@ -197,7 +197,7 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter)
 {
 	char *message = (char *)malloc(MESSAGE_SIZE);
 	SendBufferParameters *parameters = (SendBufferParameters *)parameter;
-	Queue *queue = parameters->queue;
+	RoundBuffer *rbuffer = parameters->roundbuffer;
 	SOCKET connectSocket = *(parameters->connectSocket);
 
 	int iResult;
@@ -211,15 +211,15 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter)
 				break;
 		}
 
-		if (isEmpty(queue) == true)
+		if (isEmpty(rbuffer) == true)
 		{
-			puts("Queue je prazan!");
+			puts("Buffer je prazan!");
 			Sleep(5000);
 			continue;
 		}
 
-		CNode *cNode = removeFromQueue(queue);
-		message = Serialize(cNode);
+		Node *node = removeFromRBuffer(rbuffer);
+		message = Serialize(node);
 
 		// Send an prepared message with null terminator included
 		iResult = Send(connectSocket, message, MESSAGE_SIZE);
@@ -281,8 +281,8 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 		if (iResult > 0)
 		{
 			printf("Recevied message from client, proces id=%d\n", *(int *)recvbuf);
-			CNode *cNode = Deserialize(recvbuf);
-			if (insertInQueue(parameters->queue, cNode) == false)
+			Node *node = Deserialize(recvbuf);
+			if (insertInRBuffer(parameters->roundbuffer, node) == false)
 				puts("Error inserting in queue");
 		}
 		else if (iResult == 0)
