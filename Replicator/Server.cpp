@@ -13,6 +13,10 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 #define MESSAGE_SIZE sizeof(Node)
+#define LISTEN_SOCKET_PORT 7800
+#define LISTEN_SOCKET_PORT_2 7801
+#define CONNECT_SOCKET_PORT 7802
+#define HOME_ADDRESS "127.0.0.1"
 
 typedef struct receiveParameters {
 	SOCKET *listenSocket;
@@ -54,8 +58,12 @@ int main(int argc, char **argv)
 
 	if (tipServera == GLAVNI)
 	{
-#pragma region Slanje queue-a pomocnom serveru
-		SOCKET connectSocket = CreateSocketClient(argv[1], atoi(argv[2]), 1);
+#pragma region Slanje round buffera pomocnom serveru
+		//SOCKET connectSocket = CreateSocketClient(HOME_ADDRESS, atoi(argv[2]), 1);
+		//puts("Unesi adresu pomocnog servera:");
+		//char Home_Address[100];
+		//scanf("%s", Home_Address);
+		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_PORT, 1);
 
 		SendBufferParameters parameters;
 		parameters.connectSocket = &connectSocket;
