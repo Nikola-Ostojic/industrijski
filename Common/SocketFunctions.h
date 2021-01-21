@@ -1,5 +1,5 @@
 #pragma once
-
+#pragma warning(disable:4996) 
 #ifndef SocketFunctions_H
 #define SocketFunctions_H
 
