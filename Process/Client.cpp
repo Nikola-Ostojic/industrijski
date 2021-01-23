@@ -13,6 +13,10 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 #define MESSAGE_SIZE sizeof(Node)
+#define HOME_ADDRESS "127.0.0.1"
+#define CONNECT_SOCKET_MAIN 7800
+#define CONNECT_SOCKET_OTHER 7801
+#define CONNECT_SOCKET_OTHER2 7802
 
 enum TipKlijenta {
 	GLAVNI = 0,
@@ -47,7 +51,7 @@ int main(int argc, char **argv)
 
 	if (tipKlijenta == GLAVNI)
 	{
-		SOCKET connectSocket = CreateSocketClient(argv[1], atoi(argv[2]), 1);
+		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_MAIN, 1);
 
 		int proccesId;
 
@@ -99,7 +103,9 @@ int main(int argc, char **argv)
 	}
 	else if (tipKlijenta == POMOCNI)
 	{
-		SOCKET connectSocket = CreateSocketClient(argv[1], atoi(argv[2]), 1);
+		char connect_socket_other2[4];
+		itoa(CONNECT_SOCKET_OTHER2, connect_socket_other2, 10)
+		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_OTHER, 1);
 
 		int proccesId;
 

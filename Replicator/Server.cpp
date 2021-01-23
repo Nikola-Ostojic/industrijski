@@ -13,9 +13,9 @@
 #pragma comment(lib, "Ws2_32.lib")
 
 #define MESSAGE_SIZE sizeof(Node)
-#define LISTEN_SOCKET_PORT 7800
-#define LISTEN_SOCKET_PORT_2 7801
-#define CONNECT_SOCKET_PORT 7802
+#define LISTEN_SOCKET_MAIN 7800
+#define LISTEN_SOCKET_OTHER 7801
+#define LISTEN_SOCKET_OTHER2 7802
 #define HOME_ADDRESS "127.0.0.1"
 
 typedef struct receiveParameters {
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 		//puts("Unesi adresu pomocnog servera:");
 		//char Home_Address[100];
 		//scanf("%s", Home_Address);
-		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_PORT, 1);
+		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, LISTEN_SOCKET_OTHER, 1);
 
 		SendBufferParameters parameters;
 		parameters.connectSocket = &connectSocket;
@@ -76,7 +76,9 @@ int main(int argc, char **argv)
 #pragma endregion
 
 #pragma region Primanje poruka od procesa
-		SOCKET listenSocket = CreateSocketServer(argv[3], 1);
+		char listen_port_main[4];
+		itoa(LISTEN_SOCKET_MAIN, listen_port_main, 10);
+		SOCKET listenSocket = CreateSocketServer(listen_port_main, 1);
 
 		iResult = listen(listenSocket, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
@@ -114,7 +116,10 @@ int main(int argc, char **argv)
 	else if (tipServera == POMOCNI)
 	{
 #pragma region Primanje poruka od glavnog servera
-		SOCKET listenSocketServer = CreateSocketServer(argv[1], 1);
+
+		char listen_port_other[4];
+		itoa(LISTEN_SOCKET_OTHER, listen_port_other, 10);
+		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
 
 		iResult = listen(listenSocketServer, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
@@ -145,7 +150,9 @@ int main(int argc, char **argv)
 #pragma endregion
 
 #pragma region Slanje poruka procesima
-		SOCKET listenSocketClients = CreateSocketServer(argv[2], 1);
+		char listen_socket_other2[4];
+		itoa(LISTEN_SOCKET_OTHER2, listen_socket_other2, 10);
+		SOCKET listenSocketClients = CreateSocketServer(listen_socket_other2, 1);
 
 		iResult = listen(listenSocketClients, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
