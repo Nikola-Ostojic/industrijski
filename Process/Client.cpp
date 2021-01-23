@@ -4,11 +4,14 @@
 
 #include <windows.h>
 #include <winsock2.h>
+#include <ws2tcpip.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <conio.h>
 #include "../Common/SocketFunctions.h"
-#include "../Common/DataNode.h"
+#include"../Common/RoundBuffer.h"
 #include "../Common/Serializer.h"
-#include "../Common/RoundBuffer.h"
+#include "../Common/DataNode.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -71,7 +74,9 @@ int main(int argc, char **argv)
 			node->timeStamp = *tm;
 
 			puts("Unesite poruku: ");
-			if (strcmp(gets_s(node->value), "exit") == 0)
+			char poruka[MAX_BUFFER];
+			scanf("%s", poruka);
+			if (strcmp(poruka, "exit") == 0)
 			{
 				break;
 			}
@@ -103,8 +108,7 @@ int main(int argc, char **argv)
 	}
 	else if (tipKlijenta == POMOCNI)
 	{
-		char connect_socket_other2[4];
-		itoa(CONNECT_SOCKET_OTHER2, connect_socket_other2, 10)
+		
 		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_OTHER, 1);
 
 		int proccesId;

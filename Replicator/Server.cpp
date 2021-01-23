@@ -76,8 +76,8 @@ int main(int argc, char **argv)
 #pragma endregion
 
 #pragma region Primanje poruka od procesa
-		char listen_port_main[4];
-		itoa(LISTEN_SOCKET_MAIN, listen_port_main, 10);
+		char listen_port_main[] = "7800";
+		
 		SOCKET listenSocket = CreateSocketServer(listen_port_main, 1);
 
 		iResult = listen(listenSocket, SOMAXCONN);
@@ -117,8 +117,8 @@ int main(int argc, char **argv)
 	{
 #pragma region Primanje poruka od glavnog servera
 
-		char listen_port_other[4];
-		itoa(LISTEN_SOCKET_OTHER, listen_port_other, 10);
+		char listen_port_other[] = "7801";
+		
 		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
 
 		iResult = listen(listenSocketServer, SOMAXCONN);
