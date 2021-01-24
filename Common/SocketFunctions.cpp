@@ -2,10 +2,10 @@
 
 #include "SocketFunctions.h"
 
-int Recv(SOCKET s, char *recvbuffer)
+int Recv(SOCKET s, char* recvbuffer)
 {
 	int count = 0;
-	char *countBuffer = (char *)malloc(sizeof(int));
+	char* countBuffer = (char*)malloc(sizeof(int));
 
 	while (count < sizeof(int))
 	{
@@ -26,7 +26,7 @@ int Recv(SOCKET s, char *recvbuffer)
 		}
 	}
 
-	int msgSize = *((int *)countBuffer);
+	int msgSize = *((int*)countBuffer);
 	free(countBuffer);
 
 	printf("Message size: %d\n", msgSize);
@@ -57,10 +57,10 @@ int Recv(SOCKET s, char *recvbuffer)
 
 int Send(SOCKET s, char* buff, int len)
 {
-	char *sendBuff = (char *)malloc(len);
-	char *sizeBuff = (char *)malloc(sizeof(int));
+	char* sendBuff = (char*)malloc(len);
+	char* sizeBuff = (char*)malloc(sizeof(int));
 
-	*((int *)sizeBuff) = len;
+	*((int*)sizeBuff) = len;
 
 	memcpy(sendBuff, buff, len);
 	unsigned int count = 0;
@@ -134,12 +134,12 @@ int Select(SOCKET s, bool receiving)
 	return iResult;
 }
 
-SOCKET CreateSocketServer(char *port, unsigned long int mode)
+SOCKET CreateSocketServer(char* port, unsigned long int mode)
 {
 	int iResult;
 	unsigned long int nonBlockingMode = mode;
 	SOCKET listenSocket = INVALID_SOCKET;
-	addrinfo *resultingAddress = NULL;
+	addrinfo* resultingAddress = NULL;
 	addrinfo hints;
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;       // IPv4 address
@@ -178,7 +178,7 @@ SOCKET CreateSocketServer(char *port, unsigned long int mode)
 
 	return listenSocket;
 }
-SOCKET CreateSocketClient(char *adress, int port, unsigned long int mode)
+SOCKET CreateSocketClient(char* adress, int port, unsigned long int mode)
 {
 	int iResult;
 	unsigned long int nonBlockingMode = mode;
@@ -203,7 +203,7 @@ SOCKET CreateSocketClient(char *adress, int port, unsigned long int mode)
 		WSACleanup();*/
 		Sleep(2000);
 	}
-
+	printf("Connected to server\n");
 	iResult = ioctlsocket(connectSocket, FIONBIO, &nonBlockingMode);
 
 	return connectSocket;

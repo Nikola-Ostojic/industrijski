@@ -1,10 +1,10 @@
 #include "RoundBuffer.h"
 
 
-RoundBuffer *createRoundBuffer(void)
+RoundBuffer* createRoundBuffer(void)
 {
 	unsigned int size = 4;
-	RoundBuffer *rbuffer = (RoundBuffer *)malloc(sizeof(rbuffer));
+	RoundBuffer* rbuffer = (RoundBuffer*)malloc(sizeof(rbuffer));
 
 	if (rbuffer != NULL)
 	{
@@ -27,7 +27,7 @@ RoundBuffer *createRoundBuffer(void)
 	return rbuffer;
 }
 
-void deleteRBuffer(RoundBuffer *rBuffer)
+void deleteRBuffer(RoundBuffer* rBuffer)
 {
 	if (rBuffer != NULL)
 	{
@@ -39,11 +39,11 @@ void deleteRBuffer(RoundBuffer *rBuffer)
 	return;
 }
 
-void resizeRBuffer(RoundBuffer *rBuffer)
+void resizeRBuffer(RoundBuffer* rBuffer)
 {
 	EnterCriticalSection(&(rBuffer->criticalSection));
 
-	Node **temp = (Node **)malloc(sizeof(Node *) * rBuffer->size * 2);
+	Node** temp = (Node**)malloc(sizeof(Node*) * rBuffer->size * 2);
 
 	if (temp != NULL)
 	{
@@ -73,7 +73,7 @@ void resizeRBuffer(RoundBuffer *rBuffer)
 	return;
 }
 
-bool isEmpty(RoundBuffer *rBuffer)
+bool isEmpty(RoundBuffer* rBuffer)
 {
 	EnterCriticalSection(&(rBuffer->criticalSection));
 
@@ -91,7 +91,7 @@ bool isEmpty(RoundBuffer *rBuffer)
 	return false;
 }
 
-bool insertInRBuffer(RoundBuffer *rBuffer, Node *node)
+bool insertInRBuffer(RoundBuffer* rBuffer, Node* node)
 {
 	EnterCriticalSection(&(rBuffer->criticalSection));
 
@@ -127,11 +127,11 @@ bool insertInRBuffer(RoundBuffer *rBuffer, Node *node)
 	return true;
 }
 
-Node *removeFromRBuffer(RoundBuffer *rBuffer)
+Node* removeFromRBuffer(RoundBuffer* rBuffer)
 {
 	EnterCriticalSection(&(rBuffer->criticalSection));
 
-	Node *node = NULL;
+	Node* node = NULL;
 
 	if (isEmpty(rBuffer) == false)
 	{
@@ -154,11 +154,11 @@ Node *removeFromRBuffer(RoundBuffer *rBuffer)
 	return node;
 }
 
-Node *lookHead(RoundBuffer *rBuffer)
+Node* lookHead(RoundBuffer* rBuffer)
 {
 	EnterCriticalSection(&(rBuffer->criticalSection));
 
-	Node *node = NULL;
+	Node* node = NULL;
 
 	if (isEmpty(rBuffer) == false)
 	{
@@ -170,7 +170,7 @@ Node *lookHead(RoundBuffer *rBuffer)
 	return node;
 }
 
-unsigned int getSize(RoundBuffer *rBuffer)
+unsigned int getSize(RoundBuffer* rBuffer)
 {
 	EnterCriticalSection(&(rBuffer->criticalSection));
 

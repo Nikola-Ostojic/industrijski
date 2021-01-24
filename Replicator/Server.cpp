@@ -16,16 +16,17 @@
 #define LISTEN_SOCKET_MAIN 7800
 #define LISTEN_SOCKET_OTHER 7801
 #define LISTEN_SOCKET_OTHER2 7802
+#define LISTEN_SOCKET_OTHER3 7803
 #define HOME_ADDRESS "127.0.0.1"
 
 typedef struct receiveParameters {
-	SOCKET *listenSocket;
-	RoundBuffer *roundbuffer;
+	SOCKET* listenSocket;
+	RoundBuffer* roundbuffer;
 }ReceiveParameters;
 
 typedef struct sendBufferParameters {
-	SOCKET *connectSocket;
-	RoundBuffer *roundbuffer;
+	SOCKET* connectSocket;
+	RoundBuffer* roundbuffer;
 }SendBufferParameters;
 
 enum TipServera {
@@ -37,14 +38,14 @@ bool InitializeWindowsSockets();
 DWORD WINAPI SendFromBuffer(LPVOID parameter);
 DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
 		return 1;
 
 	int iResult;
 
-	RoundBuffer *rbuffer = NULL;
+	RoundBuffer* rbuffer = NULL;
 	rbuffer = createRoundBuffer();
 
 	if (rbuffer == NULL)
@@ -77,7 +78,7 @@ int main(int argc, char **argv)
 
 #pragma region Primanje poruka od procesa
 		char listen_port_main[] = "7800";
-		
+
 		SOCKET listenSocket = CreateSocketServer(listen_port_main, 1);
 
 		iResult = listen(listenSocket, SOMAXCONN);
@@ -116,9 +117,9 @@ int main(int argc, char **argv)
 	else if (tipServera == POMOCNI)
 	{
 #pragma region Primanje poruka od glavnog servera
-
+		Node* nodeList[10];
+		int numberOdClients = 0;
 		char listen_port_other[] = "7801";
-		
 		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
 
 		iResult = listen(listenSocketServer, SOMAXCONN);
@@ -130,7 +131,6 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		printf("Pomocni server dignut, ceka glavni.\n");
 
 		iResult = Select(listenSocketServer, 1);
 		if (iResult == SOCKET_ERROR)
@@ -140,6 +140,7 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
+		printf("Pomocni server dignut, ceka glavni.\n");
 		ReceiveParameters parameters;
 		parameters.listenSocket = &listenSocketServer;
 		parameters.roundbuffer = rbuffer;
@@ -147,27 +148,29 @@ int main(int argc, char **argv)
 		DWORD dwThreadId;
 		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
 		Sleep(500);
+
+
 #pragma endregion
 
-#pragma region Slanje poruka procesima
-		char listen_socket_other2[4];
-		itoa(LISTEN_SOCKET_OTHER2, listen_socket_other2, 10);
-		SOCKET listenSocketClients = CreateSocketServer(listen_socket_other2, 1);
+#pragma region Primanje novih procesa
+		char listen_port_other3[] = "7803";
 
-		iResult = listen(listenSocketClients, SOMAXCONN);
+		SOCKET listenSocket = CreateSocketServer(listen_port_other3, 1);
+
+		iResult = listen(listenSocket, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
 		{
 			printf("listen failed with error: %d\n", WSAGetLastError());
-			closesocket(listenSocketClients);
+			closesocket(listenSocket);
 			WSACleanup();
 			return 1;
 		}
 
-		printf("Pomocni server dignut, ceka procese.\n");
+		printf("Glavni server pokrenut, ceka poruke procesa.\n");
 
 		while (1)
 		{
-			iResult = Select(listenSocketClients, 1);
+			iResult = Select(listenSocket, 1);
 			if (iResult == SOCKET_ERROR)
 			{
 				fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
@@ -176,16 +179,16 @@ int main(int argc, char **argv)
 			}
 
 			ReceiveParameters parameters;
-			parameters.listenSocket = &listenSocketClients;
+			parameters.listenSocket = &listenSocket;
 			parameters.roundbuffer = rbuffer;
 
 			DWORD dwThreadId;
-			CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
+			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
 			Sleep(500);
 		}
 
-		closesocket(listenSocketClients);
-#pragma endregion
+		closesocket(listenSocket);
+
 	}
 
 	deleteRBuffer(rbuffer);
@@ -210,9 +213,9 @@ bool InitializeWindowsSockets()
 
 DWORD WINAPI SendFromBuffer(LPVOID parameter)
 {
-	char *message = (char *)malloc(MESSAGE_SIZE);
-	SendBufferParameters *parameters = (SendBufferParameters *)parameter;
-	RoundBuffer *rbuffer = parameters->roundbuffer;
+	char* message = (char*)malloc(MESSAGE_SIZE);
+	SendBufferParameters* parameters = (SendBufferParameters*)parameter;
+	RoundBuffer* rbuffer = parameters->roundbuffer;
 	SOCKET connectSocket = *(parameters->connectSocket);
 
 	int iResult;
@@ -233,7 +236,7 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter)
 			continue;
 		}
 
-		Node *node = removeFromRBuffer(rbuffer);
+		Node* node = removeFromRBuffer(rbuffer);
 		message = Serialize(node);
 
 		// Send an prepared message with null terminator included
@@ -258,7 +261,7 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter)
 
 DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 {
-	ReceiveParameters *parameters = (ReceiveParameters *)parameter;
+	ReceiveParameters* parameters = (ReceiveParameters*)parameter;
 
 	SOCKET acceptSocket = accept(*(parameters->listenSocket), NULL, NULL);
 	if (acceptSocket == INVALID_SOCKET)
@@ -277,7 +280,7 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 		return 1;
 	}
 
-	char *recvbuf = (char*)malloc(MESSAGE_SIZE);
+	char* recvbuf = (char*)malloc(MESSAGE_SIZE);
 
 	iResult = Select(acceptSocket, 0);
 	if (iResult == -1)
@@ -295,8 +298,8 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 		iResult = Recv(acceptSocket, recvbuf);
 		if (iResult > 0)
 		{
-			printf("Recevied message from client, proces id=%d\n", *(int *)recvbuf);
-			Node *node = Deserialize(recvbuf);
+			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
+			Node* node = Deserialize(recvbuf);
 			if (insertInRBuffer(parameters->roundbuffer, node) == false)
 				puts("Error inserting in queue");
 		}
