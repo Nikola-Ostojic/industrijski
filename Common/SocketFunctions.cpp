@@ -61,7 +61,7 @@ int Send(SOCKET s, char* buff, int len)
 	char *sizeBuff = (char *)malloc(sizeof(int));
 
 	*((int *)sizeBuff) = len;
-
+	
 	memcpy(sendBuff, buff, len);
 	unsigned int count = 0;
 	int iResult;
@@ -203,7 +203,7 @@ SOCKET CreateSocketClient(char *adress, int port, unsigned long int mode)
 		WSACleanup();*/
 		Sleep(2000);
 	}
-
+	printf("Connected to server");
 	iResult = ioctlsocket(connectSocket, FIONBIO, &nonBlockingMode);
 
 	return connectSocket;

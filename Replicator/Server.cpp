@@ -16,6 +16,7 @@
 #define LISTEN_SOCKET_MAIN 7800
 #define LISTEN_SOCKET_OTHER 7801
 #define LISTEN_SOCKET_OTHER2 7802
+#define LISTEN_SOCKET_OTHER3 7803
 #define HOME_ADDRESS "127.0.0.1"
 
 typedef struct receiveParameters {
@@ -150,9 +151,9 @@ int main(int argc, char **argv)
 #pragma endregion
 
 #pragma region Slanje poruka procesima
-		char listen_socket_other2[4];
-		itoa(LISTEN_SOCKET_OTHER2, listen_socket_other2, 10);
-		SOCKET listenSocketClients = CreateSocketServer(listen_socket_other2, 1);
+		char listen_socket_other3[] = "7803";
+		
+		SOCKET listenSocketClients = CreateSocketServer(listen_socket_other3, 1);
 
 		iResult = listen(listenSocketClients, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
@@ -175,9 +176,13 @@ int main(int argc, char **argv)
 				return 1;
 			}
 
+			
+
+
 			ReceiveParameters parameters;
 			parameters.listenSocket = &listenSocketClients;
 			parameters.roundbuffer = rbuffer;
+			
 
 			DWORD dwThreadId;
 			CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);

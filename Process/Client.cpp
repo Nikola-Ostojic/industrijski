@@ -1,10 +1,9 @@
-#define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define WIN32_LEAN_AND_MEAN
-#define _CRT_SECURE_NO_WARNINGS
 
-#include <windows.h>
+
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <conio.h>
@@ -12,14 +11,20 @@
 #include"../Common/RoundBuffer.h"
 #include "../Common/Serializer.h"
 #include "../Common/DataNode.h"
+#include "../Common/Limitations.h"
 
 #pragma comment(lib, "Ws2_32.lib")
-
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define WIN32_LEAN_AND_MEAN
+#define _CRT_SECURE_NO_WARNINGS
 #define MESSAGE_SIZE sizeof(Node)
 #define HOME_ADDRESS "127.0.0.1"
 #define CONNECT_SOCKET_MAIN 7800
 #define CONNECT_SOCKET_OTHER 7801
 #define CONNECT_SOCKET_OTHER2 7802
+#define CONNECT_SOCKET_OTHER3 7803
+
+
 
 enum TipKlijenta {
 	GLAVNI = 0,
@@ -66,12 +71,13 @@ int main(int argc, char **argv)
 
 		while (1)
 		{
-			Node *node = (Node *)malloc(sizeof(Node));
+			Node *node = (Node *)(malloc(sizeof(Node)));
 			node->processId = proccesId;
-
+			/*
 			time_t ttime = time(NULL);
 			tm *tm = localtime(&ttime);
-			node->timeStamp = *tm;
+			*/
+			//cNode->timeStamp = *tm;
 
 			puts("Unesite poruku: ");
 			char poruka[MAX_BUFFER];
@@ -96,7 +102,7 @@ int main(int argc, char **argv)
 
 			if (insertInRBuffer(rBuffer, node) == false)
 			{
-				puts("Greska pri popunjavanju buffera-a!");
+				puts("Greska pri popunjavanju queue-a!");
 				break;
 			}
 
@@ -108,8 +114,8 @@ int main(int argc, char **argv)
 	}
 	else if (tipKlijenta == POMOCNI)
 	{
+		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_OTHER3, 1);
 		
-		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_OTHER, 1);
 
 		int proccesId;
 
@@ -124,6 +130,10 @@ int main(int argc, char **argv)
 			getchar();
 			return 1;
 		}
+		char b[10];
+		itoa(proccesId, b, 10);
+		iResult = Send(connectSocket, b, sizeof(b));
+		
 
 		SOCKET acceptSocket = accept(connectSocket, NULL, NULL);
 		if (acceptSocket == INVALID_SOCKET)
@@ -160,7 +170,7 @@ int main(int argc, char **argv)
 			iResult = Recv(acceptSocket, recvbuf);
 			if (iResult > 0)
 			{
-				Node *node = Deserialize(recvbuf);
+				Node* node = Deserialize(recvbuf);
 				if (node->processId == proccesId)
 				{
 					insertInRBuffer(rBuffer, node);
