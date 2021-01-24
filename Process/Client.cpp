@@ -24,6 +24,20 @@
 #define CONNECT_SOCKET_OTHER2 7802
 #define CONNECT_SOCKET_OTHER3 7803
 
+bool InitializeWindowsSockets();
+DWORD WINAPI SendFromBuffer(LPVOID parameter);
+DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
+DWORD WINAPI handleIncomingData(LPVOID lpParam);
+
+typedef struct receiveParameters {
+	SOCKET *listenSocket;
+	RoundBuffer *roundbuffer;
+}ReceiveParameters;
+
+typedef struct sendBufferParameters {
+	SOCKET *connectSocket;
+	RoundBuffer *roundbuffer;
+}SendBufferParameters;
 
 
 enum TipKlijenta {
@@ -31,65 +45,61 @@ enum TipKlijenta {
 	POMOCNI = 1
 };
 
-typedef struct receiveParameters {
-	SOCKET *listenSocket;
-	RoundBuffer *rBuffer;
-}ReceiveParameters;
 
-bool InitializeWindowsSockets();
+
 
 int main(int argc, char **argv)
 {
 	if (InitializeWindowsSockets() == false)
 		return 1;
-
-	int iResult;
-
+	int replikator;
+	int DEFAULT_PORT;
 	RoundBuffer *rBuffer = NULL;
 	rBuffer = createRoundBuffer();
-
-	if (rBuffer == NULL)
-		return 1;
-
-	TipKlijenta tipKlijenta;
-	puts("0 - Glavni proces");
-	puts("1 - Pomocni proces");
-	scanf("%d", &tipKlijenta);
-	getchar();
-
-	if (tipKlijenta == GLAVNI)
+	printf("Na koji replikator se povezujes(1 ili 2):");
+	scanf("%d", &replikator);
+	if (replikator == 1)
 	{
-		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_MAIN, 1);
+		DEFAULT_PORT = CONNECT_SOCKET_MAIN;
+	}
+	else if (replikator == 2)
+	{
+		DEFAULT_PORT = CONNECT_SOCKET_OTHER3;
+	}
+	else
+	{
+		printf("Pogresan unos!\n");
+		return 1;
+	}
 
-		int proccesId;
+	Node* node = (Node*)malloc(sizeof(Node));
 
-		puts("Unesite id procesa: ");
-		scanf("%d", &proccesId);
-		getchar();
+	
+	SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, DEFAULT_PORT, 1);
+	int iResult;
 
-		char *message = (char *)malloc(MESSAGE_SIZE);
-
-		while (1)
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	int ID = 0;
+	char* message = (char*)malloc(MESSAGE_SIZE);
+	DWORD funId;
+	HANDLE handle;
+	handle = CreateThread(NULL, 0, &handleIncomingData, &connectSocket, 0, &funId);
+	while (1)
+	{
+		if (ID == 0)
 		{
-			Node *node = (Node *)(malloc(sizeof(Node)));
-			node->processId = proccesId;
-			/*
-			time_t ttime = time(NULL);
-			tm *tm = localtime(&ttime);
-			*/
-			//cNode->timeStamp = *tm;
-
-			puts("Unesite poruku: ");
-			char poruka[MAX_BUFFER];
-			scanf("%s", poruka);
-			if (strcmp(poruka, "exit") == 0)
-			{
-				break;
-			}
+			printf("Enter process ID:");
+			scanf("%d", &ID);
+		}
+		else
+		{
+			Node *node = (Node*)malloc(sizeof(Node));
+			node->processId = ID;
+			printf("Enter message:");
+			scanf("%s", node->value);
 
 			message = Serialize(node);
-
-			// Send an prepared message with null terminator included
 			iResult = Send(connectSocket, message, MESSAGE_SIZE);
 
 			if (iResult == SOCKET_ERROR)
@@ -99,117 +109,21 @@ int main(int argc, char **argv)
 				WSACleanup();
 				return 1;
 			}
-
 			if (insertInRBuffer(rBuffer, node) == false)
 			{
-				puts("Greska pri popunjavanju queue-a!");
+				
+				printf("Greska pri popunjavanju buffera!\n");
 				break;
 			}
 
 			printf("Bytes Sent: %ld\n", iResult);
 		}
-
-		closesocket(connectSocket);
-		free(message);
-	}
-	else if (tipKlijenta == POMOCNI)
-	{
-		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, CONNECT_SOCKET_OTHER3, 1);
 		
-
-		int proccesId;
-
-		puts("Unesite id procesa: ");
-		scanf("%d", &proccesId);
-		getchar();
-
-		iResult = Select(connectSocket, 0);
-		if (iResult == SOCKET_ERROR)
-		{
-			fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-			getchar();
-			return 1;
-		}
-		char b[10];
-		itoa(proccesId, b, 10);
-		iResult = Send(connectSocket, b, sizeof(b));
-		
-
-		SOCKET acceptSocket = accept(connectSocket, NULL, NULL);
-		if (acceptSocket == INVALID_SOCKET)
-		{
-			printf("accept failed with error: %d\n", WSAGetLastError());
-			closesocket(connectSocket);
-			WSACleanup();
-			return 1;
-		}
-
-		unsigned long int nonBlockingMode = 1;
-		int iResult = ioctlsocket(acceptSocket, FIONBIO, &nonBlockingMode);
-		if (iResult == SOCKET_ERROR)
-		{
-			printf("ioctlsocket failed with error: %ld\n", WSAGetLastError());
-			return 1;
-		}
-
-		char *recvbuf = (char*)malloc(MESSAGE_SIZE);
-
-		iResult = Select(acceptSocket, 0);
-		if (iResult == -1)
-		{
-			fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-			closesocket(acceptSocket);
-			WSACleanup();
-			return 1;
-		}
-
-		do
-		{
-			memset(recvbuf, 0, MESSAGE_SIZE);
-			// Receive data until the client shuts down the connection
-			iResult = Recv(acceptSocket, recvbuf);
-			if (iResult > 0)
-			{
-				Node* node = Deserialize(recvbuf);
-				if (node->processId == proccesId)
-				{
-					insertInRBuffer(rBuffer, node);
-					puts("Primljena poruka od pomocnog servera.");
-				}
-			}
-			else if (iResult == 0)
-			{
-				// connection was closed gracefully
-				printf("Connection with client closed.\n");
-				closesocket(acceptSocket);
-			}
-			else
-			{
-				// there was an error during recv
-				if (WSAGetLastError() == WSAEWOULDBLOCK)
-				{
-					iResult = 1;
-					continue;
-				}
-				else
-				{
-					printf("recv failed with error: %d\n", WSAGetLastError());
-					closesocket(acceptSocket);
-				}
-			}
-		} while (iResult > 0);
-
-		free(recvbuf);
-
-		return 0;
 
 	}
 
-	deleteRBuffer(rBuffer);
-	WSACleanup();
-
-	getchar();
-
+	closesocket(connectSocket);
+	free(message);
 	return 0;
 }
 
@@ -224,3 +138,58 @@ bool InitializeWindowsSockets()
 	}
 	return true;
 }
+DWORD WINAPI handleIncomingData(LPVOID lpParam)
+{
+	SOCKET* connectSocket = (SOCKET*)lpParam;
+
+	int iResult;
+	char messageBuffer[MAX_BUFFER];
+
+	while (true)
+	{
+		fd_set readfds;
+		FD_ZERO(&readfds);
+
+		FD_SET(*connectSocket, &readfds);
+		timeval timeVal;
+		timeVal.tv_sec = 2;
+		timeVal.tv_usec = 0;
+		int result = select(0, &readfds, NULL, NULL, &timeVal);
+
+		if (result == 0)
+		{
+			// vreme za cekanje je isteklo
+		}
+		else if (result == SOCKET_ERROR)
+		{
+			//desila se greska prilikom poziva funkcije
+		}
+		else if (FD_ISSET(*connectSocket, &readfds))
+		{
+			// rezultat je jednak broju soketa koji su zadovoljili uslov
+			iResult = recv(*connectSocket, messageBuffer, MESSAGE_SIZE, 0);
+			if (iResult > 0)
+			{
+				printf("%s", messageBuffer);
+			}
+			else if (iResult == 0)
+			{
+				// connection was closed gracefully
+				printf("Connection with Replicator closed.\n");
+				closesocket(*connectSocket);
+			}
+			else
+			{
+				// there was an error during recv
+				printf("recv failed with error: %d\n", WSAGetLastError());
+				closesocket(*connectSocket);
+			}
+		}
+		FD_CLR(*connectSocket, &readfds);
+	}
+
+	return 0;
+}
+
+
+

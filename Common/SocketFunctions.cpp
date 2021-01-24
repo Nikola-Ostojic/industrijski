@@ -203,7 +203,7 @@ SOCKET CreateSocketClient(char *adress, int port, unsigned long int mode)
 		WSACleanup();*/
 		Sleep(2000);
 	}
-	printf("Connected to server");
+	printf("Connected to server\n");
 	iResult = ioctlsocket(connectSocket, FIONBIO, &nonBlockingMode);
 
 	return connectSocket;

@@ -117,11 +117,11 @@ int main(int argc, char **argv)
 	else if (tipServera == POMOCNI)
 	{
 #pragma region Primanje poruka od glavnog servera
-
+		Node* nodeList[10];
+		int numberOdClients = 0;
 		char listen_port_other[] = "7801";
-		
 		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
-
+		
 		iResult = listen(listenSocketServer, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
 		{
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 			WSACleanup();
 			return 1;
 		}
-
+		
 		printf("Pomocni server dignut, ceka glavni.\n");
 
 		iResult = Select(listenSocketServer, 1);
@@ -141,34 +141,28 @@ int main(int argc, char **argv)
 			return 1;
 		}
 
-		ReceiveParameters parameters;
-		parameters.listenSocket = &listenSocketServer;
-		parameters.roundbuffer = rbuffer;
-
-		DWORD dwThreadId;
-		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
-		Sleep(500);
+		
 #pragma endregion
 
 #pragma region Slanje poruka procesima
-		char listen_socket_other3[] = "7803";
-		
-		SOCKET listenSocketClients = CreateSocketServer(listen_socket_other3, 1);
+		char listen_port_other3[] = "7803";
 
-		iResult = listen(listenSocketClients, SOMAXCONN);
+		SOCKET listenSocket = CreateSocketServer(listen_port_other3, 1);
+
+		iResult = listen(listenSocket, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
 		{
 			printf("listen failed with error: %d\n", WSAGetLastError());
-			closesocket(listenSocketClients);
+			closesocket(listenSocket);
 			WSACleanup();
 			return 1;
 		}
 
-		printf("Pomocni server dignut, ceka procese.\n");
+		printf("Glavni server pokrenut, ceka poruke procesa.\n");
 
 		while (1)
 		{
-			iResult = Select(listenSocketClients, 1);
+			iResult = Select(listenSocket, 1);
 			if (iResult == SOCKET_ERROR)
 			{
 				fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
@@ -176,21 +170,17 @@ int main(int argc, char **argv)
 				return 1;
 			}
 
-			
-
-
 			ReceiveParameters parameters;
-			parameters.listenSocket = &listenSocketClients;
+			parameters.listenSocket = &listenSocket;
 			parameters.roundbuffer = rbuffer;
-			
 
 			DWORD dwThreadId;
-			CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
+			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
 			Sleep(500);
 		}
 
-		closesocket(listenSocketClients);
-#pragma endregion
+		closesocket(listenSocket);
+
 	}
 
 	deleteRBuffer(rbuffer);
