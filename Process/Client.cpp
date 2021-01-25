@@ -58,6 +58,7 @@ int main(int argc, char** argv)
 	rBuffer = createRoundBuffer();
 	printf("Na koji replikator se povezujes(1 ili 2):");
 	scanf("%d", &replikator);
+
 	if (replikator == 1)
 	{
 		DEFAULT_PORT = CONNECT_SOCKET_MAIN;
@@ -122,6 +123,7 @@ int main(int argc, char** argv)
 
 
 	}
+	free(node);
 
 	closesocket(connectSocket);
 	free(message);
