@@ -23,7 +23,7 @@
     <ProjectGuid>{F81F1020-4B82-4BE9-9EA8-CF4D75FE1693}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Replicator</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.18362.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">

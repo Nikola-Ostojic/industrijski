@@ -80,11 +80,12 @@ int main(int argc, char** argv)
 
 	fd_set readfds;
 	FD_ZERO(&readfds);
-	int ID = 0;
-	char* message = (char*)malloc(MESSAGE_SIZE);
 	DWORD funId;
 	HANDLE handle;
 	handle = CreateThread(NULL, 0, &handleIncomingData, &connectSocket, 0, &funId);
+	int ID = 0;
+	char* message = (char*)malloc(MESSAGE_SIZE);
+	
 	while (1)
 	{
 		if (ID == 0)

@@ -9,6 +9,7 @@
 #include"../Common/RoundBuffer.h"
 #include "../Common/Serializer.h"
 #include "../Common/DataNode.h"
+#include "../Common/Processes.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -33,11 +34,14 @@ enum TipServera {
 	GLAVNI = 0,
 	POMOCNI = 1
 };
-
+CRITICAL_SECTION c;
 bool InitializeWindowsSockets();
 DWORD WINAPI SendFromBuffer(LPVOID parameter);
 DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
-
+int server;
+CLIENT_LIST* head;
+SOCKET acceptSockets[5];
+int clients = 0;
 int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
@@ -56,6 +60,7 @@ int main(int argc, char** argv)
 	puts("0 - Glavni Server");
 	puts("1 - Pomocni server");
 	scanf("%d", &tipServera);
+	server = tipServera;
 
 	if (tipServera == GLAVNI)
 	{
@@ -117,8 +122,7 @@ int main(int argc, char** argv)
 	else if (tipServera == POMOCNI)
 	{
 #pragma region Primanje poruka od glavnog servera
-		Node* nodeList[10];
-		int numberOdClients = 0;
+		InitializeCriticalSection(&c);
 		char listen_port_other[] = "7801";
 		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
 
@@ -149,11 +153,15 @@ int main(int argc, char** argv)
 		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
 		Sleep(500);
 
-
+		closesocket(listenSocketServer);
 #pragma endregion
 
 #pragma region Primanje novih procesa
 		char listen_port_other3[] = "7803";
+		for (int i = 0; i < clients; i++)
+		{
+			acceptSockets[i] = INVALID_SOCKET;
+		}
 
 		SOCKET listenSocket = CreateSocketServer(listen_port_other3, 1);
 
@@ -166,31 +174,29 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Glavni server pokrenut, ceka poruke procesa.\n");
-
-		while (1)
+		printf("Pomocni server pokrenut, ceka poruke procesa.\n");
+		do
 		{
-			iResult = Select(listenSocket, 1);
-			if (iResult == SOCKET_ERROR)
+			SOCKET acceptSocket = accept(listenSocket, NULL, NULL);
+			
+			iResult = Select(acceptSocket, 0);
+			if (iResult > 0)
 			{
-				fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-				getchar();
-				return 1;
+				acceptSockets[clients] = acceptSocket;
+				clients++;
+				printf("Novi proces se povezao na replikatora 2!\n");
 			}
+	
+			
+		} while (1);
 
-			ReceiveParameters parameters;
-			parameters.listenSocket = &listenSocket;
-			parameters.roundbuffer = rbuffer;
-
-			DWORD dwThreadId;
-			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
-			Sleep(500);
-		}
-
+		
 		closesocket(listenSocket);
+		
 
 	}
-
+	
+	
 	deleteRBuffer(rbuffer);
 	WSACleanup();
 
@@ -237,6 +243,7 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter)
 		}
 
 		Node* node = removeFromRBuffer(rbuffer);
+		CLIENT c;
 		message = Serialize(node);
 
 		// Send an prepared message with null terminator included
@@ -271,7 +278,6 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 		WSACleanup();
 		return 1;
 	}
-
 	unsigned long int nonBlockingMode = 1;
 	int iResult = ioctlsocket(acceptSocket, FIONBIO, &nonBlockingMode);
 	if (iResult == SOCKET_ERROR)
@@ -300,8 +306,22 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 		{
 			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
 			Node* node = Deserialize(recvbuf);
-			if (insertInRBuffer(parameters->roundbuffer, node) == false)
-				puts("Error inserting in queue");
+			
+			if (server == 0) {
+				if (insertInRBuffer(parameters->roundbuffer, node) == false)
+					puts("Error inserting in queue");
+			}
+			else if (server == 1)
+			{
+				for (int i = 0; i < clients; i++)
+				{
+					iResult = Send(acceptSockets[clients], recvbuf, sizeof(recvbuf));
+				}
+			}
+
+			
+			
+			
 		}
 		else if (iResult == 0)
 		{

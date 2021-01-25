@@ -115,7 +115,7 @@ int Select(SOCKET s, bool receiving)
 		// Add socket we will wait to read from
 		FD_SET(s, &set);
 
-		timeVal.tv_sec = 0;
+		timeVal.tv_sec = 1;
 		timeVal.tv_usec = 0;
 
 		if (receiving == true) {
