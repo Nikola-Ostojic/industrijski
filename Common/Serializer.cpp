@@ -17,6 +17,7 @@ Node* Deserialize(char* buffer)
 	newNode->processId = *((int*)buffer);
 	//newNode->timeStamp = *((tm *)(buffer + sizeof(int)));
 	//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
+	memset(newNode->value, 0, MAX_BUFFER);
 	strcpy(newNode->value, buffer + sizeof(int));
 
 	return newNode;

@@ -173,7 +173,12 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 			iResult = Recv(*connectSocket, messageBuffer);
 			if (iResult > 0)
 			{
-				printf("%s", messageBuffer);
+				
+				Node* n = Deserialize(messageBuffer);
+
+				printf("Value:%s\n", n->value);
+				printf("ID:%d\n", n->processId);
+				free(n);
 			}
 			else if (iResult == 0)
 			{
