@@ -177,12 +177,11 @@ int main(int argc, char** argv)
 		printf("Pomocni server pokrenut, ceka poruke procesa.\n");
 		do
 		{
-			acceptSockets[0] = accept(listenSocket, NULL, NULL);
+			acceptSockets[clients] = accept(listenSocket, NULL, NULL);
 
-			iResult = Select(acceptSockets[0], 1);
+			iResult = Select(acceptSockets[clients], 1);
 			if (iResult > 0)
 			{
-				//acceptSockets[clients] = acceptSocket;
 				clients++;
 				printf("Novi proces se povezao na replikatora 2!\n");
 			}
@@ -313,18 +312,18 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 			}
 			else if (server == 1)
 			{
-				//for (int i = 0; i < clients; i++)
-				//{
-					iResult = Send(acceptSockets[0], recvbuf, sizeof(recvbuf));
+				for (int i = 0; i < clients; i++)
+				{
+					iResult = Send(acceptSockets[i], recvbuf, sizeof(recvbuf));
 					if (iResult == SOCKET_ERROR)
 					{
 						printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
-						//closesocket(connectSocket);
+						closesocket(acceptSockets[i]);
 						WSACleanup();
 						return 1;
 					}
 					printf("Uspesno poslata poruka\n");
-				//}
+				}
 			}
 
 			

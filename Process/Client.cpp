@@ -170,7 +170,7 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 		else if (FD_ISSET(*connectSocket, &readfds))
 		{
 			// rezultat je jednak broju soketa koji su zadovoljili uslov
-			iResult = recv(*connectSocket, messageBuffer, MESSAGE_SIZE, 0);
+			iResult = Recv(*connectSocket, messageBuffer);
 			if (iResult > 0)
 			{
 				printf("%s", messageBuffer);
