@@ -53,8 +53,8 @@ int main(int argc, char** argv)
 
 	TipServera tipServera;
 
-	puts("0 - Glavni Server");
-	puts("1 - Pomocni server");
+	puts("0 - Glavni Replikator");
+	puts("1 - Pomocni Replikator");
 	scanf("%d", &tipServera);
 
 	if (tipServera == GLAVNI)
