@@ -1,6 +1,3 @@
-
-
-
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
@@ -52,12 +49,16 @@ int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
 		return 1;
+
 	int replikator;
 	int DEFAULT_PORT;
+
 	RoundBuffer* rBuffer = NULL;
 	rBuffer = createRoundBuffer();
-	printf("Na koji replikator se povezujes(1 (Glavni) ili 2 (Pomocni)):");
+
+	printf("Koje procese startujes(1 (Glavne) ili 2 (Pomocne)):");
 	scanf("%d", &replikator);
+
 	if (replikator == 1)
 	{
 		DEFAULT_PORT = CONNECT_SOCKET_MAIN;
@@ -127,6 +128,12 @@ int main(int argc, char** argv)
 	return 0;
 }
 
+
+
+
+
+
+
 bool InitializeWindowsSockets()
 {
 	WSADATA wsaData;
@@ -138,6 +145,11 @@ bool InitializeWindowsSockets()
 	}
 	return true;
 }
+
+
+
+
+
 DWORD WINAPI handleIncomingData(LPVOID lpParam)
 {
 	SOCKET* connectSocket = (SOCKET*)lpParam;

@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 
 	if (tipServera == GLAVNI)
 	{
-#pragma region Slanje round buffera pomocnom serveru
+#pragma region Slanje round buffera pomocnom replikatoru
 		//SOCKET connectSocket = CreateSocketClient(HOME_ADDRESS, atoi(argv[2]), 1);
 		//puts("Unesi adresu pomocnog servera:");
 		//char Home_Address[100];
@@ -149,7 +149,42 @@ int main(int argc, char** argv)
 		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
 		Sleep(500);
 
+#pragma endregion
 
+#pragma region Slanje poruka procesima
+		SOCKET listenSocketClients = CreateSocketServer(argv[2], 1);
+
+		iResult = listen(listenSocketClients, SOMAXCONN);
+		if (iResult == SOCKET_ERROR)
+		{
+			printf("listen failed with error: %d\n", WSAGetLastError());
+			closesocket(listenSocketClients);
+			WSACleanup();
+			return 1;
+		}
+
+		printf("Pomocni server dignut, ceka procese.\n");
+
+		while (1)
+		{
+			iResult = Select(listenSocketClients, 1);
+			if (iResult == SOCKET_ERROR)
+			{
+				fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
+				getchar();
+				return 1;
+			}
+
+			ReceiveParameters parameters;
+			parameters.listenSocket = &listenSocketClients;
+			parameters.roundbuffer = rbuffer;
+
+			DWORD dwThreadId;
+			CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
+			Sleep(500);
+		}
+
+		closesocket(listenSocketClients);
 #pragma endregion
 
 #pragma region Primanje novih procesa
@@ -188,6 +223,8 @@ int main(int argc, char** argv)
 		}
 
 		closesocket(listenSocket);
+
+#pragma endregion Primanje novih procesa
 
 	}
 
