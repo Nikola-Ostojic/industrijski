@@ -57,8 +57,8 @@ int main(int argc, char** argv)
 
 	TipServera tipServera;
 
-	puts("0 - Glavni Server");
-	puts("1 - Pomocni server");
+	puts("0 - Glavni Replikator");
+	puts("1 - Pomocni Replikator");
 	scanf("%d", &tipServera);
 	server = tipServera;
 
@@ -95,7 +95,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Glavni server pokrenut, ceka poruke procesa.\n");
+		printf("Glavni replikator pokrenut, ceka poruke procesa.\n");
 
 		while (1)
 		{
@@ -144,7 +144,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Pomocni server dignut, ceka glavni.\n");
+		printf("Pomocni replikator dignut, ceka glavni.\n");
 		ReceiveParameters parameters;
 		parameters.listenSocket = &listenSocketServer;
 		parameters.roundbuffer = rbuffer;
@@ -174,7 +174,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Pomocni server pokrenut, ceka poruke procesa.\n");
+		printf("Pomocni replikator pokrenut, ceka poruke procesa.\n");
 		do
 		{
 			acceptSockets[clients] = accept(listenSocket, NULL, NULL);
@@ -183,7 +183,7 @@ int main(int argc, char** argv)
 			if (iResult > 0)
 			{
 				clients++;
-				printf("Novi proces se povezao na replikatora 2!\n");
+				printf("Novi proces se povezao na Replikator-2!\n");
 			}
 
 			//closesocket(acceptSocket);

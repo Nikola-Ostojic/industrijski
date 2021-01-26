@@ -58,7 +58,7 @@ int main(int argc, char** argv)
 	int DEFAULT_PORT;
 	RoundBuffer* rBuffer = NULL;
 	rBuffer = createRoundBuffer();
-	printf("Na koji replikator se povezujes(1 ili 2):");
+	printf("Na koji replikator se povezujes(1(Glavni) ili 2(Pomocni)):");
 	scanf("%d", &replikator);
 
 	if (replikator == 1)
@@ -187,6 +187,9 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 				//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
 				memset(newNode->value, 0, MAX_BUFFER);
 				strcpy(newNode->value, messageBuffer + sizeof(int));
+
+				//Pokusaj ispravke
+				newNode->value[sizeof(messageBuffer) + sizeof(int)] = 0;
 				
 				printf("Value:%s\n", newNode->value);
 				printf("ID:%d\n", newNode->processId);
