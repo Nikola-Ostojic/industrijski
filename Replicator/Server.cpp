@@ -98,6 +98,8 @@ int main(int argc, char** argv)
 		CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
 		Sleep(500);
 
+
+
 		DWORD dwThread12Id;
 		CreateThread(NULL, 0, &handleResponseFromReplicator, &connectSocket, 0, &dwThread12Id);
 		Sleep(500);
@@ -211,7 +213,17 @@ int main(int argc, char** argv)
 		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
 		Sleep(500);
 
+
+		SendBufferParameters parameters2;
+		parameters2.connectSocket = &R2R1AcceptSocket;
+		parameters2.roundbuffer = rbuffer;
+
+		DWORD dwThreadId12;
+		CreateThread(NULL, 0, &SendFromBuffer, &parameters2, 0, &dwThreadId12);
+		Sleep(500);
+
 		closesocket(listenSocketServer);
+		//closesocket(R2R1AcceptSocket);
 #pragma endregion
 
 #pragma region Primanje novih procesa
@@ -247,43 +259,14 @@ int main(int argc, char** argv)
 				
 				printf("Novi proces se povezao na replikatora 2!\n");
 				clients++;
-				iResult = Send(R2R1AcceptSocket, mess, strlen(mess));
-				if (iResult == SOCKET_ERROR)
-				{
-					printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
-					closesocket(R2R1AcceptSocket);
-					WSACleanup();
-					return 1;
-				}
-				printf("Uspesno poslata poruka replikatoru\n");
-				///////////////////////////////////////////////////////////
-				/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				/*Node* testNode = (Node*)malloc(sizeof(Node));
-				testNode->processId = 123;
-				char* mess = (char*)malloc(MESSAGE_SIZE);
-				mess = Serialize(testNode);
-				if (true)
-				{
-					SOCKET s = CreateSocketClient((char*)HOME_ADDRESS, FORWARD_TO_MAIN, 1);
-					
-						iResult = Send(s, mess, MESSAGE_SIZE);
-					
-					Sleep(500);
-
-					closesocket(s);
-				}
+				Node* testNode = (Node*)malloc(sizeof(Node));
+				testNode->processId = 89;
 				
-				/*
-				FORWARD_STRUCT forward;
-				forward.listenSocket = &listenSocketServer;
 
-				forward.buffer = Serialize(testNode);
-
-
-				DWORD dwThread3Id;
-				CreateThread(NULL, 0, &forwardMessageToReplicator, &forward, 0, &dwThread3Id);
-				*/
-				//*/
+				insertInRBuffer(rbuffer, testNode);
+				free(testNode);
+				printf("Uspesno poslata poruka replikatoru\n");
+				
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			}
 
@@ -463,9 +446,60 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 DWORD WINAPI handleResponseFromReplicator(LPVOID parameters)
 {
 	SOCKET* connectSocket = (SOCKET*)parameters;
+
 	int iResult;
 	char messageBuffer[MAX_BUFFER];
-	iResult = Select(*connectSocket, 0);
+	while (true)
+	{
+		fd_set readfds;
+		FD_ZERO(&readfds);
+
+		FD_SET(*connectSocket, &readfds);
+		timeval timeVal;
+		timeVal.tv_sec = 1;
+		timeVal.tv_usec = 0;
+		int result = select(0, &readfds, NULL, NULL, &timeVal);
+
+		if (result == 0)
+		{
+			// vreme za cekanje je isteklo
+		}
+		else if (result == SOCKET_ERROR)
+		{
+			//desila se greska prilikom poziva funkcije
+		}
+		else if (FD_ISSET(*connectSocket, &readfds))
+		{
+			// rezultat je jednak broju soketa koji su zadovoljili uslov
+			iResult = Recv(*connectSocket, messageBuffer);
+			if (iResult > 0)
+			{
+				printf("Message from repl2:%s\n", messageBuffer);
+			}
+			else if (iResult == 0)
+			{
+				// connection was closed gracefully
+				printf("Connection with Replicator closed.\n");
+				closesocket(*connectSocket);
+			}
+			else
+			{
+				// there was an error during recv
+				printf("recv failed with error: %d\n", WSAGetLastError());
+				closesocket(*connectSocket);
+			}
+		}
+
+		FD_CLR(*connectSocket, &readfds);
+	}
+
+	return 0;
+
+	/*
+	SOCKET* connectSocket = (SOCKET*)parameters;
+	int iResult;
+	char* messageBuffer = (char*)malloc(MESSAGE_SIZE);
+	iResult = Select(*connectSocket, 1);
 	if (iResult == -1)
 	{
 		fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
@@ -508,8 +542,9 @@ DWORD WINAPI handleResponseFromReplicator(LPVOID parameters)
 			}
 		}
 	} while (iResult > 0);
-
+	free(messageBuffer);
 	return 0;
+	*/
 }
 
 DWORD WINAPI recMesFromR2(LPVOID parameter)
