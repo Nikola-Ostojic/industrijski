@@ -207,6 +207,7 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 				closesocket(*connectSocket);
 			}
 		}
+		
 		FD_CLR(*connectSocket, &readfds);
 	}
 
