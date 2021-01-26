@@ -29,6 +29,7 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter);
 DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
 DWORD WINAPI handleIncomingData(LPVOID lpParam);
 
+
 typedef struct receiveParameters {
 	SOCKET* listenSocket;
 	RoundBuffer* roundbuffer;
