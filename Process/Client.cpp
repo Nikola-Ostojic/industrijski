@@ -46,7 +46,8 @@ enum TipKlijenta {
 };
 
 
-
+Node* inbox[100];
+int messagesRecieved = 0;
 
 int main(int argc, char** argv)
 {
@@ -97,9 +98,14 @@ int main(int argc, char** argv)
 		else
 		{
 			Node* node = (Node*)malloc(sizeof(Node));
+			char enterText[MAX_BUFFER];
+			memset(enterText, 0, MAX_BUFFER);
+
 			node->processId = ID;
 			printf("Enter message:");
-			scanf("%s", node->value);
+			scanf("%s",enterText);
+
+			strcpy(node->value, enterText);
 
 			message = Serialize(node);
 			iResult = Send(connectSocket, message, MESSAGE_SIZE);
@@ -119,11 +125,12 @@ int main(int argc, char** argv)
 			}
 
 			printf("Bytes Sent: %ld\n", iResult);
+			free(node);
 		}
 
 
 	}
-	free(node);
+	
 
 	closesocket(connectSocket);
 	free(message);
@@ -147,7 +154,7 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 
 	int iResult;
 	char messageBuffer[MAX_BUFFER];
-
+	Node* newNode;
 	while (true)
 	{
 		fd_set readfds;
@@ -173,12 +180,18 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 			iResult = Recv(*connectSocket, messageBuffer);
 			if (iResult > 0)
 			{
+				newNode = (Node*)malloc(sizeof(Node));
+				newNode->processId = *((int*)messageBuffer);
+				//newNode->timeStamp = *((tm *)(buffer + sizeof(int)));
+				//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
+				memset(newNode->value, 0, MAX_BUFFER);
+				strcpy(newNode->value, messageBuffer + sizeof(int));
 				
-				Node* n = Deserialize(messageBuffer);
-
-				printf("Value:%s\n", n->value);
-				printf("ID:%d\n", n->processId);
-				free(n);
+				printf("Value:%s\n", newNode->value);
+				printf("ID:%d\n", newNode->processId);
+				//free(newNode);
+				//messagesRecieved++;
+				//free(n);
 			}
 			else if (iResult == 0)
 			{

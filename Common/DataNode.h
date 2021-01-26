@@ -8,9 +8,9 @@
 
 typedef struct Node {
 	int processId;
-	tm timeStamp;
+	//tm timeStamp;
 	char value[MAX_BUFFER];
 }Node;
 
-#endif // !ClientNode_H
+#endif // 
 
