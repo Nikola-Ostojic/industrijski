@@ -458,58 +458,9 @@ DWORD WINAPI handleResponseFromReplicator(LPVOID parameters)
 
 	return 0;
 
-	/*
-	SOCKET* connectSocket = (SOCKET*)parameters;
-	int iResult;
-	char* messageBuffer = (char*)malloc(MESSAGE_SIZE);
-	iResult = Select(*connectSocket, 1);
-	if (iResult == -1)
-	{
-		fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-		closesocket(*connectSocket);
-		WSACleanup();
-		return 1;
-	}
-
-	do
-	{
-		memset(messageBuffer, 0, MESSAGE_SIZE);
-		// Receive data until the client shuts down the connection
-		iResult = Recv(*connectSocket, messageBuffer);
-		if (iResult > 0)
-		{
-			printf("Poruka od replikatora:%s\n", messageBuffer);
-
-
-
-
-		}
-		else if (iResult == 0)
-		{
-			// connection was closed gracefully
-			printf("Connection with client closed.\n");
-			closesocket(*connectSocket);
-		}
-		else
-		{
-			// there was an error during recv
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
-			{
-				iResult = 1;
-				continue;
-			}
-			else
-			{
-				printf("recv failed with error: %d\n", WSAGetLastError());
-				closesocket(*connectSocket);
-			}
-		}
-	} while (iResult > 0);
-	free(messageBuffer);
-	return 0;
-	*/
+	
 }
-
+//ne koristim nigde
 DWORD WINAPI recMesFromR2(LPVOID parameter)
 {
 	ReceiveParameters* parameters = (ReceiveParameters*)parameter;
@@ -582,7 +533,7 @@ DWORD WINAPI recMesFromR2(LPVOID parameter)
 }
 
 
-
+//ne koristim nigde
 DWORD WINAPI forwardMessageToReplicator(LPVOID parameters)
 {
 	FORWARD_STRUCT* forward = (FORWARD_STRUCT*)parameters;
