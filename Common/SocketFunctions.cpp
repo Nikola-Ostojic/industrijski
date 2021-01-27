@@ -29,7 +29,7 @@ int Recv(SOCKET s, char* recvbuffer)
 	int msgSize = *((int*)countBuffer);
 	free(countBuffer);
 
-	printf("Message size: %d\n", msgSize);
+	//printf("Message size: %d\n", msgSize);
 
 	count = 0;
 

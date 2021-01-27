@@ -39,9 +39,12 @@ bool InitializeWindowsSockets();
 DWORD WINAPI SendFromBuffer(LPVOID parameter);
 DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
 int server;
-CLIENT_LIST* head;
-SOCKET acceptSockets[5];
-int clients = 0;
+
+
+SOCKET acceptSocketsMain[6];
+SOCKET acceptSocketsOther[6];
+int clientsMain = 0;
+int clientsOther = 1;
 int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
@@ -122,7 +125,6 @@ int main(int argc, char** argv)
 	else if (tipServera == POMOCNI)
 	{
 #pragma region Primanje poruka od glavnog servera
-		InitializeCriticalSection(&c);
 		char listen_port_other[] = "7801";
 		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
 
@@ -156,12 +158,26 @@ int main(int argc, char** argv)
 		closesocket(listenSocketServer);
 #pragma endregion
 
+
+		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, LISTEN_SOCKET_MAIN, 1);
+
+		SendBufferParameters parameters2;
+		parameters2.connectSocket = &connectSocket;
+		parameters2.roundbuffer = rbuffer;
+
+		//Pravljenje niti za slanje pomocnom serveru
+		DWORD dwThreadId4;
+		CreateThread(NULL, 0, &SendFromBuffer, &parameters2, 0, &dwThreadId4);
+		Sleep(500);
+
+
+
 #pragma region Primanje novih procesa
 		char listen_port_other3[] = "7803";
-		for (int i = 0; i < clients; i++)
-		{
-			acceptSockets[i] = INVALID_SOCKET;
-		}
+		//for (int i = 0; i < clients; i++)
+		//{
+			//acceptSockets[i] = INVALID_SOCKET;
+		//}
 
 		SOCKET listenSocket = CreateSocketServer(listen_port_other3, 1);
 
@@ -174,28 +190,105 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Pomocni server pokrenut, ceka poruke procesa.\n");
-		do
-		{
-			acceptSockets[clients] = accept(listenSocket, NULL, NULL);
+		printf("Glavni server pokrenut, ceka poruke procesa.\n");
 
-			iResult = Select(acceptSockets[clients], 1);
-			if (iResult > 0)
+		while (1)
+		{
+			iResult = Select(listenSocket, 1);
+			if (iResult == SOCKET_ERROR)
 			{
-				clients++;
-				printf("Novi proces se povezao na replikatora 2!\n");
+				fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
+				getchar();
+				return 1;
 			}
 
-			//closesocket(acceptSocket);
-		} while (1);
+			ReceiveParameters parameters;
+			parameters.listenSocket = &listenSocket;
+			parameters.roundbuffer = rbuffer;
 
-		
+			DWORD dwThreadId;
+			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
+			Sleep(500);
+		}
+
 		closesocket(listenSocket);
+		/*		}
+				iResult = listen(listenSocket, SOMAXCONN);
+				if (iResult == SOCKET_ERROR)
+				{
+					printf("listen failed with error: %d\n", WSAGetLastError());
+					closesocket(listenSocket);
+					WSACleanup();
+					return 1;
+				}
+				acceptSockets[clients] = accept(listenSocket, NULL, NULL);
+				printf("Pomocni server pokrenut, ceka poruke procesa.\n");
+				iResult = Select(acceptSockets[clients], 0);
+				if (iResult == -1)
+				{
+					fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
+					closesocket(acceptSockets[clients]);
+					WSACleanup();
+					return 1;
+				}
+				char* recvbuf = (char*)malloc(MESSAGE_SIZE);
+				do
+				{
+					memset(recvbuf, 0, MESSAGE_SIZE);
+					// Receive data until the client shuts down the connection
+					iResult = Recv(acceptSockets[clients] , recvbuf);
+					if (iResult > 0)
+					{
+						printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
+						Node* node = Deserialize(recvbuf);
+
+							if (insertInRBuffer(rbuffer, node) == false)
+								puts("Error inserting in queue");
+
+
+
+
+					}
+					else if (iResult == 0)
+					{
+						// connection was closed gracefully
+						printf("Connection with client closed.\n");
+						closesocket(acceptSockets[clients]);
+					}
+					else
+					{
+						// there was an error during recv
+						if (WSAGetLastError() == WSAEWOULDBLOCK)
+						{
+							iResult = 1;
+							continue;
+						}
+						else
+						{
+							printf("recv failed with error: %d\n", WSAGetLastError());
+							closesocket(acceptSockets[clients]);
+						}
+					}
+
+					/*
+					iResult = Select(acceptSockets[clients], 1);
+					if (iResult > 0)
+					{
+						clients++;
+						printf("Novi proces se povezao na replikatora 2!\n");
+						Node *node
+					}
+
+					//closesocket(acceptSocket);
+				} while (1);
+
+			*/
+			//closesocket(listenSocket);
+
+
 
 
 	}
-
-
 	deleteRBuffer(rbuffer);
 	WSACleanup();
 
@@ -270,6 +363,16 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 	ReceiveParameters* parameters = (ReceiveParameters*)parameter;
 
 	SOCKET acceptSocket = accept(*(parameters->listenSocket), NULL, NULL);
+	if (server == 0)
+	{
+		acceptSocketsMain[clientsMain] = acceptSocket;
+		clientsMain++;
+	}
+	else if (server == 1)
+	{
+		acceptSocketsOther[clientsOther] = acceptSocket;
+		clientsOther++;
+	}
 	if (acceptSocket == INVALID_SOCKET)
 	{
 		printf("accept failed with error: %d\n", WSAGetLastError());
@@ -306,10 +409,47 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
 			Node* node = Deserialize(recvbuf);
 			
-			if (server == 0) {
+			//if (server == 0) {
 				if (insertInRBuffer(parameters->roundbuffer, node) == false)
 					puts("Error inserting in queue");
-			}
+
+				Sleep(2000);
+				removeFromRBuffer(parameters->roundbuffer);
+				if (server == 0)
+				{
+					for (int i = 0; i < clientsMain; i++)
+					{
+						iResult = Send(acceptSocketsMain[i], recvbuf, MESSAGE_SIZE);
+						if (iResult == SOCKET_ERROR)
+						{
+							printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
+							closesocket(acceptSocketsMain[i]);
+							WSACleanup();
+							return 1;
+						}
+						printf("Uspesno poslata poruka procesima\n");
+					}
+
+				}
+
+				else if (server == 1)
+				{
+					for (int i = 1; i < clientsOther; i++)
+					{
+						iResult = Send(acceptSocketsOther[i], recvbuf, MESSAGE_SIZE);
+						if (iResult == SOCKET_ERROR)
+						{
+							printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
+							closesocket(acceptSocketsOther[i]);
+							WSACleanup();
+							return 1;
+						}
+						printf("Uspesno poslata poruka procesima\n");
+					}
+
+				}
+			//}
+				/*
 			else if (server == 1)
 			{
 				for (int i = 0; i < clients; i++)
@@ -325,7 +465,7 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 					printf("Uspesno poslata poruka\n");
 				}
 			}
-
+			*/
 			
 			
 			

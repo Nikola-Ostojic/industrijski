@@ -49,11 +49,13 @@ enum TipKlijenta {
 
 Node* inbox[100];
 int messagesRecieved = 0;
-
+CRITICAL_SECTION cs;
+int ID = 0;
 int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
 		return 1;
+	InitializeCriticalSection(&cs);
 	int replikator;
 	int DEFAULT_PORT;
 	RoundBuffer* rBuffer = NULL;
@@ -86,7 +88,7 @@ int main(int argc, char** argv)
 	DWORD funId;
 	HANDLE handle;
 	handle = CreateThread(NULL, 0, &handleIncomingData, &connectSocket, 0, &funId);
-	int ID = 0;
+	
 	char* message = (char*)malloc(MESSAGE_SIZE);
 	
 	while (1)
@@ -103,9 +105,10 @@ int main(int argc, char** argv)
 			memset(enterText, 0, MAX_BUFFER);
 
 			node->processId = ID;
+			EnterCriticalSection(&cs);
 			printf("Enter message:");
 			scanf("%s",enterText);
-
+			LeaveCriticalSection(&cs);
 			strcpy(node->value, enterText);
 
 			message = Serialize(node);
@@ -163,7 +166,7 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 
 		FD_SET(*connectSocket, &readfds);
 		timeval timeVal;
-		timeVal.tv_sec = 2;
+		timeVal.tv_sec = 1;
 		timeVal.tv_usec = 0;
 		int result = select(0, &readfds, NULL, NULL, &timeVal);
 
@@ -180,9 +183,16 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 			// rezultat je jednak broju soketa koji su zadovoljili uslov
 			iResult = Recv(*connectSocket, messageBuffer);
 			if (iResult > 0)
-			{
+			{	
+				EnterCriticalSection(&cs);
 				newNode = (Node*)malloc(sizeof(Node));
 				newNode->processId = *((int*)messageBuffer);
+				if (newNode->processId == ID)
+				{
+					free(newNode);
+					LeaveCriticalSection(&cs);
+					continue;
+				}
 				//newNode->timeStamp = *((tm *)(buffer + sizeof(int)));
 				//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
 				memset(newNode->value, 0, MAX_BUFFER);
@@ -190,6 +200,7 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 				
 				printf("Value:%s\n", newNode->value);
 				printf("ID:%d\n", newNode->processId);
+				LeaveCriticalSection(&cs);
 				//free(newNode);
 				//messagesRecieved++;
 				//free(n);
