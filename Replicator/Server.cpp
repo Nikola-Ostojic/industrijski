@@ -83,66 +83,30 @@ int main(int argc, char** argv)
 	if (tipServera == GLAVNI)
 	{
 #pragma region Slanje round buffera pomocnom serveru
-		//SOCKET connectSocket = CreateSocketClient(HOME_ADDRESS, atoi(argv[2]), 1);
-		//puts("Unesi adresu pomocnog servera:");
-		//char Home_Address[100];
-		//scanf("%s", Home_Address);
+		//socket za povezivanje glavnog replikatora na pomocni
 		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, LISTEN_SOCKET_OTHER, 1);
 
 		SendBufferParameters parameters;
-		parameters.connectSocket = &connectSocket;
+		parameters.connectSocket = &connectSocket; //metodi SendFromBuffer se salje struktura SendBufferParameters
 		parameters.roundbuffer = rbuffer;
 
-		//Pravljenje niti za slanje pomocnom serveru
+		//Thread za povezivanje glavnog replikatora na pomocni
 		DWORD dwThreadId;
-		CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
+		CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId); //pravljenje threada i slanje strukture SendBufferParameters
 		Sleep(500);
 
 
-
+		//Thread za slusanje, glavni replikator slusa na istom socketu na kojem se povezao na pomocni replikator
 		DWORD dwThread12Id;
-		CreateThread(NULL, 0, &handleResponseFromReplicator, &connectSocket, 0, &dwThread12Id);
+		CreateThread(NULL, 0, &handleResponseFromReplicator, &connectSocket, 0, &dwThread12Id); //ceka odgovor pomocnog replikatora
 		Sleep(500);
 
-////////////////////////////////////////////////////////////////////////////
-		/*
-		char portForReplies[] = "10001";
-		SOCKET replicatorResponse = CreateSocketServer(portForReplies, 1);
-		iResult = listen(replicatorResponse, SOMAXCONN);
-		if (iResult == SOCKET_ERROR)
-		{
-			printf("listen failed with error: %d\n", WSAGetLastError());
-			closesocket(replicatorResponse);
-			WSACleanup();
-			return 1;
-		}
 
-
-
-		iResult = Select(replicatorResponse, 1);
-		if (iResult == SOCKET_ERROR)
-		{
-			fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-			getchar();
-			return 1;
-		}
-
-		printf("Pomocni server dignut, ceka glavni.\n");
-		ReceiveParameters parametersForResponses;
-		parametersForResponses.listenSocket = &replicatorResponse;
-		parametersForResponses.roundbuffer = rbuffer;
-
-		DWORD dwThreadIdd;
-		CreateThread(NULL, 0, &ReceiveMessageClient, &recMesFromR2, 0, &dwThreadIdd);
-		Sleep(500);
-		printf("Glavni server sada moze primati odgovore\n");
-		*/
-/////////////////////////////////////////////////////////////////////////////////////////////
 #pragma endregion
 
 #pragma region Primanje poruka od procesa
 		char listen_port_main[] = "7800";
-
+		//socket za povezivanje novih procesa na glavni replikator
 		SOCKET listenSocket = CreateSocketServer(listen_port_main, 1);
 
 		iResult = listen(listenSocket, SOMAXCONN);
@@ -166,26 +130,28 @@ int main(int argc, char** argv)
 				return 1;
 			}
 
-			ReceiveParameters parameters;
-			parameters.listenSocket = &listenSocket;
-			parameters.roundbuffer = rbuffer;
+			ReceiveParameters parameters; //Struktura RecieveParameters se prosledjuje threadu koji koristi metodi RecieveMessageClient
+			parameters.listenSocket = &listenSocket;//strukturi se prosledjuje listenSocket koji osluskuje za nove klijente
+			parameters.roundbuffer = rbuffer;//i round buffer
 
-			DWORD dwThreadId;
-			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
+			DWORD dwThread3Id;//Pokretanje threada koji osluskuje za povezivanje klijenata
+			CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThread3Id);//i prosledjivanje parametara metodi
 			Sleep(500);
 		}
 
 		closesocket(listenSocket);
+		closesocket(connectSocket);
 #pragma endregion
 	}
 	else if (tipServera == POMOCNI)
 	{
 #pragma region Primanje poruka od glavnog servera
-		InitializeCriticalSection(&c);
+		
 		char listen_port_other[] = "7801";
-		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
+		//Pravljenje socketa koji osluskuje za povezivanje glavnog replikatora na pomocni
+		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);//Na ovaj socket se povezuje glavni replikator
 
-		iResult = listen(listenSocketServer, SOMAXCONN);
+		iResult = listen(listenSocketServer, SOMAXCONN);//slusanje na tom socketu
 		if (iResult == SOCKET_ERROR)
 		{
 			printf("listen failed with error: %d\n", WSAGetLastError());
@@ -205,35 +171,35 @@ int main(int argc, char** argv)
 		}
 	
 		printf("Pomocni server dignut, ceka glavni.\n");
-		ReceiveParameters parameters;
-		parameters.listenSocket = &listenSocketServer;
+		ReceiveParameters parameters;//strukutra za prosledjivanje threadu koji ceka glavni replikator
+		parameters.listenSocket = &listenSocketServer;//salje se socket na kojem slusa i buffer
 		parameters.roundbuffer = rbuffer;
 
-		DWORD dwThreadId;
-		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);
+		DWORD dwThreadId; //Replikator pokrece metodu RecieveMessageClient koja cita poruku i upisuje je u buffer
+		CreateThread(NULL, 0, &ReceiveMessageClient, &parameters, 0, &dwThreadId);//pokretanje threada za slusanje, na koji se povezuje glavni replikator
 		Sleep(500);
 
 
-		SendBufferParameters parameters2;
-		parameters2.connectSocket = &R2R1AcceptSocket;
-		parameters2.roundbuffer = rbuffer;
+		SendBufferParameters parameters2; //pravim jos jedan thread, koji bi trebao iz buffera da salje poruke na accept socket
+		parameters2.connectSocket = &R2R1AcceptSocket;//acceptsocket sam sacuvao u metodi RecieveMessageClient kada se glavni replikator
+		parameters2.roundbuffer = rbuffer;												                         //povezao na pomocni
 
 		DWORD dwThreadId12;
-		CreateThread(NULL, 0, &SendFromBuffer, &parameters2, 0, &dwThreadId12);
-		Sleep(500);
-
-		closesocket(listenSocketServer);
+		CreateThread(NULL, 0, &SendFromBuffer, &parameters2, 0, &dwThreadId12);//pri primljenoj poruci od procesa na pomocnom replikatoru, ona bi trebala
+		Sleep(500);																									//da bude upisana u buffer
+																										//a zatim da je ova metoda procita i posalje
+		closesocket(listenSocketServer);															//na accept socket(ka glavnom replikatoru)				
 		//closesocket(R2R1AcceptSocket);
 #pragma endregion
 
 #pragma region Primanje novih procesa
-		char listen_port_other3[] = "7803";
+		char listen_port_other3[] = "7803"; //slusanje za povezivanje procesa na pomocni replikator
 		for (int i = 0; i < clients; i++)
 		{
-			acceptSockets[i] = INVALID_SOCKET;
-		}
+			acceptSockets[i] = INVALID_SOCKET; //lista accept socketa se cuva kako bi poruka mogla da se prosledi svim povezanim procesima
+		}																					//na pomocni replikator
 
-		SOCKET listenSocket = CreateSocketServer(listen_port_other3, 1);
+		SOCKET listenSocket = CreateSocketServer(listen_port_other3, 1);//pravljenje socketa za povezivanje procesa na pomocni replikator
 
 		iResult = listen(listenSocket, SOMAXCONN);
 		if (iResult == SOCKET_ERROR)
@@ -247,25 +213,22 @@ int main(int argc, char** argv)
 		printf("Pomocni server pokrenut, ceka poruke procesa.\n");
 		do
 		{
-			acceptSockets[clients] = accept(listenSocket, NULL, NULL);
-
+			acceptSockets[clients] = accept(listenSocket, NULL, NULL);//u promenljivoj clients se cuva broj povezanih procesa, tako da kad se
+																	  //poveze novi proces, ona se povecava
 			iResult = Select(acceptSockets[clients], 1);
-			if (iResult > 0)
+			if (iResult > 0)			//povezao se novi proces, iResult je vece od 0
 			{
-				
-			
-				char mess[] = "Poruka za replikator 1";
 				
 				
 				printf("Novi proces se povezao na replikatora 2!\n");
-				clients++;
-				Node* testNode = (Node*)malloc(sizeof(Node));
-				testNode->processId = 89;
+				clients++;									
+				Node* testNode = (Node*)malloc(sizeof(Node));		//testNode pravim jer nije implementirano citanje/deserijalizovanje/serijalizovanje
+				testNode->processId = 89;							//primljenog paketa, pa saljem samo ovo
 				
 
-				insertInRBuffer(rbuffer, testNode);
-				free(testNode);
-				printf("Uspesno poslata poruka replikatoru\n");
+				insertInRBuffer(rbuffer, testNode);		//poruka se stavlja u buffer, kako bi je procitao proces koji proverava buffer, i prosledio 
+				free(testNode);																						//glavnom replikatoru
+				printf("Uspesno poslata poruka replikatoru\n");//ispise se i kad nije tacno
 				
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			}
