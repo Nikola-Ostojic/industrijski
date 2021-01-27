@@ -1,6 +1,3 @@
-
-
-
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <windows.h>
@@ -88,7 +85,7 @@ int main(int argc, char** argv)
 	handle = CreateThread(NULL, 0, &handleIncomingData, &connectSocket, 0, &funId);
 	int ID = 0;
 	char* message = (char*)malloc(MESSAGE_SIZE);
-	
+
 	while (1)
 	{
 		if (ID == 0)
@@ -104,7 +101,7 @@ int main(int argc, char** argv)
 
 			node->processId = ID;
 			printf("Enter message:");
-			scanf("%s",enterText);
+			scanf("%s", enterText);
 
 			strcpy(node->value, enterText);
 
@@ -131,7 +128,7 @@ int main(int argc, char** argv)
 
 
 	}
-	
+
 
 	closesocket(connectSocket);
 	free(message);
@@ -183,12 +180,13 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 			{
 				newNode = (Node*)malloc(sizeof(Node));
 				newNode->processId = *((int*)messageBuffer);
-				//newNode->timeStamp = *((tm *)(buffer + sizeof(int)));
-				//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
+
 				memset(newNode->value, 0, MAX_BUFFER);
 				strcpy(newNode->value, messageBuffer + sizeof(int));
-				
+
 				printf("Value:%s\n", newNode->value);
+			
+
 				printf("ID:%d\n", newNode->processId);
 				//free(newNode);
 				//messagesRecieved++;
@@ -207,12 +205,9 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 				closesocket(*connectSocket);
 			}
 		}
-		
+
 		FD_CLR(*connectSocket, &readfds);
 	}
 
 	return 0;
 }
-
-
-

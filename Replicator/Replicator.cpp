@@ -98,9 +98,9 @@ int main(int argc, char** argv)
 		CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
 		Sleep(500);
 
-		DWORD dwThread12Id;
+		/*DWORD dwThread12Id;
 		CreateThread(NULL, 0, &handleResponseFromReplicator, &connectSocket, 0, &dwThread12Id);
-		Sleep(500);
+		Sleep(500);*/
 
 ////////////////////////////////////////////////////////////////////////////
 		/*
@@ -178,6 +178,7 @@ int main(int argc, char** argv)
 	}
 	else if (tipServera == POMOCNI)
 	{
+
 #pragma region Primanje poruka od glavnog servera
 		InitializeCriticalSection(&c);
 		char listen_port_other[] = "7801";
@@ -191,9 +192,7 @@ int main(int argc, char** argv)
 			WSACleanup();
 			return 1;
 		}
-
-		
-		
+	
 		iResult = Select(listenSocketServer, 1);
 		if (iResult == SOCKET_ERROR)
 		{
@@ -233,6 +232,9 @@ int main(int argc, char** argv)
 		}
 
 		printf("Pomocni server pokrenut, ceka poruke procesa.\n");
+
+
+
 		do
 		{
 			acceptSockets[clients] = accept(listenSocket, NULL, NULL);
@@ -460,129 +462,129 @@ DWORD WINAPI ReceiveMessageClient(LPVOID parameter)
 	return 0;
 }
 ///////////////////////////////////////////////////////////////
-DWORD WINAPI handleResponseFromReplicator(LPVOID parameters)
-{
-	SOCKET* connectSocket = (SOCKET*)parameters;
-	int iResult;
-	char messageBuffer[MAX_BUFFER];
-	iResult = Select(*connectSocket, 0);
-	if (iResult == -1)
-	{
-		fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-		closesocket(*connectSocket);
-		WSACleanup();
-		return 1;
-	}
+//DWORD WINAPI handleResponseFromReplicator(LPVOID parameters)
+//{
+//	SOCKET* connectSocket = (SOCKET*)parameters;
+//	int iResult;
+//	char messageBuffer[MAX_BUFFER];
+//	iResult = Select(*connectSocket, 1);
+//	if (iResult == -1)
+//	{
+//		fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
+//		closesocket(*connectSocket);
+//		WSACleanup();
+//		return 1;
+//	}
+//
+//	do
+//	{
+//		memset(messageBuffer, 0, MESSAGE_SIZE);
+//		// Receive data until the client shuts down the connection
+//		iResult = Recv(*connectSocket, messageBuffer);
+//		if (iResult > 0)
+//		{
+//			printf("Poruka od replikatora:%s\n", messageBuffer);
+//
+//
+//
+//
+//		}
+//		else if (iResult == 0)
+//		{
+//			// connection was closed gracefully
+//			printf("Connection with client closed.\n");
+//			closesocket(*connectSocket);
+//		}
+//		else
+//		{
+//			// there was an error during recv
+//			if (WSAGetLastError() == WSAEWOULDBLOCK)
+//			{
+//				iResult = 1;
+//				continue;
+//			}
+//			else
+//			{
+//				printf("recv failed with error: %d\n", WSAGetLastError());
+//				closesocket(*connectSocket);
+//			}
+//		}
+//	} while (iResult > 0);
+//
+//	return 0;
+//}
+//
+//DWORD WINAPI recMesFromR2(LPVOID parameter)
+//{
+//	ReceiveParameters* parameters = (ReceiveParameters*)parameter;
+//
+//	SOCKET acceptSocket = accept(*(parameters->listenSocket), NULL, NULL);
+//
+//	if (acceptSocket == INVALID_SOCKET)
+//	{
+//		printf("accept failed with error: %d\n", WSAGetLastError());
+//		closesocket(*(parameters->listenSocket));
+//		WSACleanup();
+//		return 1;
+//	}
+//	unsigned long int nonBlockingMode = 1;
+//	int iResult = ioctlsocket(acceptSocket, FIONBIO, &nonBlockingMode);
+//	if (iResult == SOCKET_ERROR)
+//	{
+//		printf("ioctlsocket failed with error: %ld\n", WSAGetLastError());
+//		return 1;
+//	}
+//
+//	char* recvbuf = (char*)malloc(MESSAGE_SIZE);
+//
+//	iResult = Select(acceptSocket, 0);
+//	if (iResult == -1)
+//	{
+//		fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
+//		closesocket(acceptSocket);
+//		WSACleanup();
+//		return 1;
+//	}
+//
+//	do
+//	{
+//		memset(recvbuf, 0, MESSAGE_SIZE);
+//		// Receive data until the client shuts down the connection
+//		iResult = Recv(acceptSocket, recvbuf);
+//		if (iResult > 0)
+//		{
+//			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
+//			
+//		}
+//		else if (iResult == 0)
+//		{
+//			// connection was closed gracefully
+//			printf("Connection with client closed.\n");
+//			closesocket(acceptSocket);
+//		}
+//		else
+//		{
+//			// there was an error during recv
+//			if (WSAGetLastError() == WSAEWOULDBLOCK)
+//			{
+//				iResult = 1;
+//				continue;
+//			}
+//			else
+//			{
+//				printf("recv failed with error: %d\n", WSAGetLastError());
+//				closesocket(acceptSocket);
+//			}
+//		}
+//	} while (iResult > 0);
 
-	do
-	{
-		memset(messageBuffer, 0, MESSAGE_SIZE);
-		// Receive data until the client shuts down the connection
-		iResult = Recv(*connectSocket, messageBuffer);
-		if (iResult > 0)
-		{
-			printf("Poruka od replikatora:%s\n", messageBuffer);
-
-
-
-
-		}
-		else if (iResult == 0)
-		{
-			// connection was closed gracefully
-			printf("Connection with client closed.\n");
-			closesocket(*connectSocket);
-		}
-		else
-		{
-			// there was an error during recv
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
-			{
-				iResult = 1;
-				continue;
-			}
-			else
-			{
-				printf("recv failed with error: %d\n", WSAGetLastError());
-				closesocket(*connectSocket);
-			}
-		}
-	} while (iResult > 0);
-
-	return 0;
-}
-
-DWORD WINAPI recMesFromR2(LPVOID parameter)
-{
-	ReceiveParameters* parameters = (ReceiveParameters*)parameter;
-
-	SOCKET acceptSocket = accept(*(parameters->listenSocket), NULL, NULL);
-
-	if (acceptSocket == INVALID_SOCKET)
-	{
-		printf("accept failed with error: %d\n", WSAGetLastError());
-		closesocket(*(parameters->listenSocket));
-		WSACleanup();
-		return 1;
-	}
-	unsigned long int nonBlockingMode = 1;
-	int iResult = ioctlsocket(acceptSocket, FIONBIO, &nonBlockingMode);
-	if (iResult == SOCKET_ERROR)
-	{
-		printf("ioctlsocket failed with error: %ld\n", WSAGetLastError());
-		return 1;
-	}
-
-	char* recvbuf = (char*)malloc(MESSAGE_SIZE);
-
-	iResult = Select(acceptSocket, 0);
-	if (iResult == -1)
-	{
-		fprintf(stderr, "select failed with error: %ld\n", WSAGetLastError());
-		closesocket(acceptSocket);
-		WSACleanup();
-		return 1;
-	}
-
-	do
-	{
-		memset(recvbuf, 0, MESSAGE_SIZE);
-		// Receive data until the client shuts down the connection
-		iResult = Recv(acceptSocket, recvbuf);
-		if (iResult > 0)
-		{
-			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
-			
-		}
-		else if (iResult == 0)
-		{
-			// connection was closed gracefully
-			printf("Connection with client closed.\n");
-			closesocket(acceptSocket);
-		}
-		else
-		{
-			// there was an error during recv
-			if (WSAGetLastError() == WSAEWOULDBLOCK)
-			{
-				iResult = 1;
-				continue;
-			}
-			else
-			{
-				printf("recv failed with error: %d\n", WSAGetLastError());
-				closesocket(acceptSocket);
-			}
-		}
-	} while (iResult > 0);
-
-	free(recvbuf);
-
-
-
-	return 0;
-}
-
+//	free(recvbuf);
+//
+//
+//
+//	return 0;
+//}
+//
 
 
 DWORD WINAPI forwardMessageToReplicator(LPVOID parameters)
