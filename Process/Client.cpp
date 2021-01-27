@@ -105,6 +105,7 @@ int main(int argc, char** argv)
 			memset(enterText, 0, MAX_BUFFER);
 
 			node->processId = ID;
+			node->senderType = 0;
 			EnterCriticalSection(&cs);
 			printf("Enter message:");
 			scanf("%s",enterText);
@@ -184,23 +185,26 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 			iResult = Recv(*connectSocket, messageBuffer);
 			if (iResult > 0)
 			{	
-				EnterCriticalSection(&cs);
+				//EnterCriticalSection(&cs);
 				newNode = (Node*)malloc(sizeof(Node));
 				newNode->processId = *((int*)messageBuffer);
+
 				if (newNode->processId == ID)
 				{
 					free(newNode);
-					LeaveCriticalSection(&cs);
+					//LeaveCriticalSection(&cs);
 					continue;
 				}
 				//newNode->timeStamp = *((tm *)(buffer + sizeof(int)));
 				//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
 				memset(newNode->value, 0, MAX_BUFFER);
-				strcpy(newNode->value, messageBuffer + sizeof(int));
-				
+				strcpy(newNode->value, messageBuffer + sizeof(int) + sizeof(int));
+				printf("\n______________\n");
+				printf("\t***NOVA PORUKA***\t");
 				printf("Value:%s\n", newNode->value);
 				printf("ID:%d\n", newNode->processId);
-				LeaveCriticalSection(&cs);
+				printf("\n______________\n");
+				//LeaveCriticalSection(&cs);
 				//free(newNode);
 				//messagesRecieved++;
 				//free(n);
