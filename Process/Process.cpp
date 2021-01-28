@@ -60,7 +60,7 @@ int main(int argc, char** argv)
 	int DEFAULT_PORT;
 	RoundBuffer* rBuffer = NULL;
 	rBuffer = createRoundBuffer();
-	printf("Na koji replikator se povezujes(1 ili 2):");
+	printf("Na koji Replikator se povezujes(1 ili 2):");
 	scanf("%d", &replikator);
 
 	if (replikator == 1)

@@ -61,8 +61,8 @@ int main(int argc, char** argv)
 
 	TipServera tipServera;
 
-	puts("0 - Glavni Server");
-	puts("1 - Pomocni server");
+	puts("0 - Glavni Replikator");
+	puts("1 - Pomocni Replikator");
 	scanf("%d", &tipServera);
 	server = tipServera;
 
@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Glavni server pokrenut, ceka poruke procesa.\n");
+		printf("Glavni replikator pokrenut, ceka poruke procesa.\n");
 
 		while (1)
 		{
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Pomocni server dignut, ceka glavni.\n");
+		printf("Pomocni Replikator dignut, ceka glavni.\n");
 		ReceiveParameters parameters;
 		parameters.listenSocket = &listenSocketServer;
 		parameters.roundbuffer = rbuffer;
@@ -191,7 +191,7 @@ int main(int argc, char** argv)
 			return 1;
 		}
 
-		printf("Glavni server pokrenut, ceka poruke procesa.\n");
+		printf("Glavni Replikator pokrenut, ceka poruke procesa.\n");
 
 		while (1)
 		{
@@ -408,7 +408,7 @@ DWORD WINAPI ReceiveMessageMainReplicator(LPVOID parameter)
 			if (node->senderType == 0)
 			{
 				if (insertInRBuffer(parameters->roundbuffer, node) == false)
-					puts("Error inserting in queue");
+					puts("Error inserting in buffer");
 				Sleep(2000);
 				removeFromRBuffer(parameters->roundbuffer);
 				bool alreadyConnected = false;
@@ -525,7 +525,7 @@ DWORD WINAPI ReceiveMessageOtherReplicator(LPVOID parameter)
 			if (node->senderType == 0)
 			{
 				if (insertInRBuffer(parameters->roundbuffer, node) == false)
-					puts("Error inserting in queue");
+					puts("Error inserting in buffer");
 
 				Sleep(2000);
 				removeFromRBuffer(parameters->roundbuffer);
