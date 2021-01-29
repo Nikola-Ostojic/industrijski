@@ -9,6 +9,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Replicator", "Replicator\Re
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "Common\Common.vcxproj", "{24C73F43-9DB5-4B10-A1FF-A7F327940D3B}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Dokumentacija", "Dokumentacija", "{0C945B10-8191-4591-B8E4-F48528F6C7EE}"
+	ProjectSection(SolutionItems) = preProject
+		..\..\..\Downloads\Dokumentacija.pdf = ..\..\..\Downloads\Dokumentacija.pdf
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
