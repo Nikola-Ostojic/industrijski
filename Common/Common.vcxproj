@@ -21,13 +21,11 @@
   <ItemGroup>
     <ClInclude Include="DataNode.h" />
     <ClInclude Include="Limitations.h" />
-    <ClInclude Include="Processes.h" />
     <ClInclude Include="RoundBuffer.h" />
     <ClInclude Include="Serializer.h" />
     <ClInclude Include="SocketFunctions.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Processes.cpp" />
     <ClCompile Include="RoundBuffer.cpp" />
     <ClCompile Include="Serializer.cpp" />
     <ClCompile Include="SocketFunctions.cpp" />

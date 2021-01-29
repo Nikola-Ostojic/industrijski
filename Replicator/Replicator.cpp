@@ -9,7 +9,6 @@
 #include"../Common/RoundBuffer.h"
 #include "../Common/Serializer.h"
 #include "../Common/DataNode.h"
-#include "../Common/Processes.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -47,9 +46,6 @@ SOCKET acceptSocketsOther[MAX_PROCESSES];
 int RegisteredProcessMain[MAX_PROCESSES];
 int RegisteredProcessOther[MAX_PROCESSES];
 
-
-
-
 int numOfRegProcMain = 0;
 int numOfRegProcOther = 0;
 int clientsMain = 0;
@@ -75,6 +71,7 @@ int main(int argc, char** argv)
 	scanf("%d", &tipServera);
 	server = tipServera;
 
+	//prvo se pokrece sporedni replikator
 	if (tipServera == GLAVNI)
 	{
 #pragma region Slanje round buffera pomocnom replikatoru

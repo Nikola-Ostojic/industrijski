@@ -30,9 +30,6 @@
     <ClInclude Include="DataNode.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Processes.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="RoundBuffer.cpp">
@@ -42,9 +39,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SocketFunctions.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Processes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
