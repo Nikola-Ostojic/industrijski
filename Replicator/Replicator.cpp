@@ -42,10 +42,19 @@ DWORD WINAPI ReceiveMessageOtherReplicator(LPVOID parameter);
 int server;
 
 
-SOCKET acceptSocketsMain[6];
-SOCKET acceptSocketsOther[6];
+SOCKET acceptSocketsMain[MAX_PROCESSES];
+SOCKET acceptSocketsOther[MAX_PROCESSES];
+int RegisteredProcessMain[MAX_PROCESSES];
+int RegisteredProcessOther[MAX_PROCESSES];
+
+
+
+
+int numOfRegProcMain = 0;
+int numOfRegProcOther = 0;
 int clientsMain = 0;
 int clientsOther = 0;
+
 int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
@@ -68,18 +77,15 @@ int main(int argc, char** argv)
 
 	if (tipServera == GLAVNI)
 	{
-#pragma region Slanje round buffera pomocnom serveru
-		//SOCKET connectSocket = CreateSocketClient(HOME_ADDRESS, atoi(argv[2]), 1);
-		//puts("Unesi adresu pomocnog servera:");
-		//char Home_Address[100];
-		//scanf("%s", Home_Address);
+#pragma region Slanje round buffera pomocnom replikatoru
+		
 		SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, LISTEN_SOCKET_OTHER, 1);
 
 		SendBufferParameters parameters;
 		parameters.connectSocket = &connectSocket;
 		parameters.roundbuffer = rbuffer;
 
-		//Pravljenje niti za slanje pomocnom serveru
+		
 		DWORD dwThreadId;
 		CreateThread(NULL, 0, &SendFromBuffer, &parameters, 0, &dwThreadId);
 		Sleep(500);
@@ -125,7 +131,7 @@ int main(int argc, char** argv)
 	}
 	else if (tipServera == POMOCNI)
 	{
-#pragma region Primanje poruka od glavnog servera
+#pragma region Primanje poruka od glavnog replikatora
 		char listen_port_other[] = "7801";
 		SOCKET listenSocketServer = CreateSocketServer(listen_port_other, 1);
 
@@ -331,7 +337,7 @@ DWORD WINAPI SendFromBuffer(LPVOID parameter)
 		if (isEmpty(rbuffer) == true)
 		{
 			puts("Buffer je prazan!");
-			Sleep(5000);
+			Sleep(2000);
 			continue;
 		}
 
@@ -399,43 +405,84 @@ DWORD WINAPI ReceiveMessageMainReplicator(LPVOID parameter)
 		if (iResult > 0)
 		{
 			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
+			char regFailString[] = "---regFail---\n";
+			char regOKString[] = "---regOK---\n";
+			char regString[] = "---registrationstring---\n";;
 			Node* node = Deserialize(recvbuf);
 
-			//if (server == 0) {
+			
 			
 
 			
 			if (node->senderType == 0)
 			{
-				if (insertInRBuffer(parameters->roundbuffer, node) == false)
-					puts("Error inserting in buffer");
-				Sleep(2000);
-				removeFromRBuffer(parameters->roundbuffer);
-				bool alreadyConnected = false;
-				for (int i = 0; i < clientsMain; i++)
+				if (strcmp(node->value, regString) == 0)
 				{
-					if (acceptSocketsMain[i] == acceptSocket)
+
+					bool alreadyReg = false;
+					for (int i = 0; i < numOfRegProcMain; i++)
 					{
-						alreadyConnected = true;
-						break;
+						if (RegisteredProcessMain[i] == node->processId)
+						{
+							Node* sendNode = (Node*)malloc(sizeof(Node));
+							sendNode->processId = 123;
+							sendNode->senderType = 1;
+							strcpy(sendNode->value, regFailString);
+							char* reply = Serialize(sendNode);
+							iResult = Send(acceptSocket, reply, MESSAGE_SIZE);
+							alreadyReg = true;
+							Sleep(1000);
+							free(sendNode);
+							
+							
+						}
 					}
-					
-				}
-				if (!alreadyConnected)
-				{
-					acceptSocketsMain[clientsMain] = acceptSocket;
-					clientsMain++;
+					if (!alreadyReg) {
+						RegisteredProcessMain[numOfRegProcMain] = node->processId;
+						numOfRegProcMain++;
+						Node* sendNode = (Node*)malloc(sizeof(Node));
+						sendNode->processId = 123;
+						sendNode->senderType = 1;
+						strcpy(sendNode->value, regOKString);
+						char* reply = Serialize(sendNode);
+						iResult = Send(acceptSocket, reply, MESSAGE_SIZE);
+						Sleep(1000);
+						bool alreadyConnected = false;
+						for (int i = 0; i < clientsMain; i++)
+						{
+							if (acceptSocketsMain[i] == acceptSocket)
+							{
+								alreadyConnected = true;
+								break;
+							}
+
+						}
+						if (!alreadyConnected)
+						{
+							acceptSocketsMain[clientsMain] = acceptSocket;
+							clientsMain++;
+						}
+						free(sendNode);
+					}
 				}
 				
-				//iResult = Send(acceptSocket, recvbuf, MESSAGE_SIZE);
-				//if (iResult == SOCKET_ERROR)
-				//{
-				//	printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
-				//	closesocket(acceptSocketsMain[0]);
-				//	WSACleanup();
-				//	return 1;
-				//}
-				printf("Uspesno poslata poruka replikatoru\n");
+				else {
+					if (insertInRBuffer(parameters->roundbuffer, node) == false)
+						puts("Error inserting in buffer");
+					Sleep(3000);
+					removeFromRBuffer(parameters->roundbuffer);
+					
+
+					//iResult = Send(acceptSocket, recvbuf, MESSAGE_SIZE);
+					//if (iResult == SOCKET_ERROR)
+					//{
+					//	printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
+					//	closesocket(acceptSocketsMain[0]);
+					//	WSACleanup();
+					//	return 1;
+					//}
+					printf("Uspesno poslata poruka replikatoru\n");
+				}
 			}
 			else {
 				for (int i = 0; i < clientsMain; i++)
@@ -518,43 +565,84 @@ DWORD WINAPI ReceiveMessageOtherReplicator(LPVOID parameter)
 		if (iResult > 0)
 		{
 			printf("Recevied message from client, proces id=%d\n", *(int*)recvbuf);
+			char regFailString[] = "---regFail---\n";
+			char regOKString[] = "---regOK---\n";
+			char regString[] = "---registrationstring---\n";;
 			Node* node = Deserialize(recvbuf);
 
 			//if (server == 0) {
 			
 			if (node->senderType == 0)
 			{
-				if (insertInRBuffer(parameters->roundbuffer, node) == false)
-					puts("Error inserting in buffer");
 
-				Sleep(2000);
-				removeFromRBuffer(parameters->roundbuffer);
-				bool alreadyConnected = false;
-
-				for (int i = 0; i < clientsOther; i++)
+				if (strcmp(node->value, regString) == 0)
 				{
-					if (acceptSocketsOther[i] == acceptSocket)
+
+					bool alreadyReg = false;
+					for (int i = 0; i < numOfRegProcOther; i++)
 					{
-						alreadyConnected = true;
-						break;
+						if (RegisteredProcessOther[i] == node->processId)
+						{
+							Node* sendNode = (Node*)malloc(sizeof(Node));
+							sendNode->processId = 123;
+							sendNode->senderType = 1;
+							strcpy(sendNode->value, regFailString);
+							char* reply = Serialize(sendNode);
+							iResult = Send(acceptSocket, reply, MESSAGE_SIZE);
+							alreadyReg = true;
+							free(sendNode);
+
+
+						}
+					}
+					if (!alreadyReg) {
+						RegisteredProcessOther[numOfRegProcOther] = node->processId;
+						numOfRegProcOther++;
+						Node* sendNode = (Node*)malloc(sizeof(Node));
+						sendNode->processId = 123;
+						sendNode->senderType = 1;
+						strcpy(sendNode->value, regOKString);
+						char* reply = Serialize(sendNode);
+						iResult = Send(acceptSocket, reply, MESSAGE_SIZE);
+						bool alreadyConnected = false;
+
+						for (int i = 0; i < clientsOther; i++)
+						{
+							if (acceptSocketsOther[i] == acceptSocket)
+							{
+								alreadyConnected = true;
+								break;
+							}
+						}
+						if (!alreadyConnected)
+						{
+							acceptSocketsOther[clientsOther] = acceptSocket;
+							clientsOther++;
+						}
+						free(sendNode);
 					}
 				}
-				if (!alreadyConnected)
-				{
-					acceptSocketsOther[clientsOther] = acceptSocket;
-					clientsOther++;
+
+				else {
+
+					if (insertInRBuffer(parameters->roundbuffer, node) == false)
+						puts("Error inserting in buffer");
+
+					Sleep(3000);
+					removeFromRBuffer(parameters->roundbuffer);
+					
+
+
+					//iResult = Send(acceptSocket, recvbuf, MESSAGE_SIZE);
+					//if (iResult == SOCKET_ERROR)
+					//{
+					//	printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
+					//	closesocket(acceptSocketsOther[0]);
+					//	WSACleanup();
+					//	return 1;
+					//}
+					//printf("Uspesno poslata poruka replikatoru\n");
 				}
-			
-				
-				//iResult = Send(acceptSocket, recvbuf, MESSAGE_SIZE);
-				//if (iResult == SOCKET_ERROR)
-				//{
-				//	printf("send failed with error: %d\nPoruka nije poslata\n", WSAGetLastError());
-				//	closesocket(acceptSocketsOther[0]);
-				//	WSACleanup();
-				//	return 1;
-				//}
-				//printf("Uspesno poslata poruka replikatoru\n");
 			}
 			else {
 				for (int i = 0; i < clientsOther; i++)

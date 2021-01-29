@@ -27,5 +27,5 @@ Node *removeFromRBuffer(RoundBuffer *rBuffer);
 Node *lookHead(RoundBuffer *rBuffer);
 unsigned int getSize(RoundBuffer *rBuffer);
 
-#endif // !Queue_H
+#endif 
 

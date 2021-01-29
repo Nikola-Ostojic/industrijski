@@ -27,9 +27,10 @@
 bool InitializeWindowsSockets();
 DWORD WINAPI SendFromBuffer(LPVOID parameter);
 DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
-DWORD WINAPI handleIncomingData(LPVOID lpParam);
-
-
+DWORD WINAPI callBack(LPVOID lpParam);
+void RegisterProcess(int processid); 
+void SendData(int processid, char* sendData, int size);
+/*
 typedef struct receiveParameters {
 	SOCKET* listenSocket;
 	RoundBuffer* roundbuffer;
@@ -40,17 +41,22 @@ typedef struct sendBufferParameters {
 	RoundBuffer* roundbuffer;
 }SendBufferParameters;
 
-
+*/
 enum TipKlijenta {
 	GLAVNI = 0,
 	POMOCNI = 1
 };
 
 
-Node* inbox[100];
+Node inbox[100];
 int messagesRecieved = 0;
+
+
 CRITICAL_SECTION cs;
 int ID = 0;
+SOCKET connectSocket = INVALID_SOCKET;
+bool registered = false;
+
 int main(int argc, char** argv)
 {
 	if (InitializeWindowsSockets() == false)
@@ -77,17 +83,17 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	Node* node = (Node*)malloc(sizeof(Node));
+	
 
 
-	SOCKET connectSocket = CreateSocketClient((char*)HOME_ADDRESS, DEFAULT_PORT, 1);
+	connectSocket = CreateSocketClient((char*)HOME_ADDRESS, DEFAULT_PORT, 1);
 	int iResult;
 
 	fd_set readfds;
 	FD_ZERO(&readfds);
 	DWORD funId;
 	HANDLE handle;
-	handle = CreateThread(NULL, 0, &handleIncomingData, &connectSocket, 0, &funId);
+	handle = CreateThread(NULL, 0, &callBack, &connectSocket, 0, &funId);
 	
 	char* message = (char*)malloc(MESSAGE_SIZE);
 	
@@ -95,42 +101,32 @@ int main(int argc, char** argv)
 	{
 		if (ID == 0)
 		{
-			printf("Enter process ID:");
-			scanf("%d", &ID);
+			while (!registered) {
+				EnterCriticalSection(&cs);
+				printf("\nEnter process ID:\n");
+				scanf("%d", &ID);
+				LeaveCriticalSection(&cs);
+				RegisterProcess(ID);
+				Sleep(1000);
+			}
 		}
 		else
 		{
-			Node* node = (Node*)malloc(sizeof(Node));
+			//Node* node = (Node*)malloc(sizeof(Node));
 			char enterText[MAX_BUFFER];
 			memset(enterText, 0, MAX_BUFFER);
 
-			node->processId = ID;
-			node->senderType = 0;
+			//node->processId = ID;
+			//node->senderType = 0;
 			EnterCriticalSection(&cs);
-			printf("Enter message:");
-			scanf("%s",enterText);
+			printf("Enter message:\n");
 			LeaveCriticalSection(&cs);
-			strcpy(node->value, enterText);
-
-			message = Serialize(node);
-			iResult = Send(connectSocket, message, MESSAGE_SIZE);
-
-			if (iResult == SOCKET_ERROR)
-			{
-				printf("send failed with error: %d\n", WSAGetLastError());
-				closesocket(connectSocket);
-				WSACleanup();
-				return 1;
-			}
-			if (insertInRBuffer(rBuffer, node) == false)
-			{
-
-				printf("Greska pri popunjavanju buffera!\n");
+			scanf("%s",enterText);
+			if (strcmp(enterText, "exit!") == 0) {
 				break;
 			}
-
-			printf("Bytes Sent: %ld\n", iResult);
-			free(node);
+			SendData(ID, enterText, MESSAGE_SIZE);
+			
 		}
 
 
@@ -153,7 +149,7 @@ bool InitializeWindowsSockets()
 	}
 	return true;
 }
-DWORD WINAPI handleIncomingData(LPVOID lpParam)
+DWORD WINAPI callBack(LPVOID lpParam)
 {
 	SOCKET* connectSocket = (SOCKET*)lpParam;
 
@@ -186,10 +182,27 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 			if (iResult > 0)
 			{	
 				//EnterCriticalSection(&cs);
-				newNode = (Node*)malloc(sizeof(Node));
-				newNode->processId = *((int*)messageBuffer);
+				Node* newNode = Deserialize(messageBuffer);
+				char regFailString[] = "---regFail---\n";
+				char regOKString[] = "---regOK---\n";
+				if (strcmp(newNode->value, regFailString) == 0)
+				{
+					printf("Vec je registrovan proces sa tim ID-em!\n! Pokusajte ponovo!");
+					registered = false;
+					FD_CLR(*connectSocket, &readfds);
+					ID = 0;
+					continue;
 
-				if (newNode->processId == ID)
+				}
+				if (strcmp(newNode->value, regOKString) == 0)
+				{
+					printf("Registracija uspesna! Sada mozete slati poruke replikatoru!\n");
+					registered = true;
+					FD_CLR(*connectSocket, &readfds);
+					continue;
+				}
+
+				if (newNode->processId == ID && newNode->senderType == 0)
 				{
 					free(newNode);
 					//LeaveCriticalSection(&cs);
@@ -199,8 +212,8 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 				//strcpy(newNode->value, buffer + sizeof(tm) + sizeof(int));
 				memset(newNode->value, 0, MAX_BUFFER);
 				strcpy(newNode->value, messageBuffer + sizeof(int) + sizeof(int));
-				printf("\n______________\n");
-				printf("\t***NOVA PORUKA***\t");
+				
+				printf("\n***NOVA PORUKA***\n");
 				printf("Value:%s\n", newNode->value);
 				printf("ID:%d\n", newNode->processId);
 				printf("\n______________\n");
@@ -228,5 +241,25 @@ DWORD WINAPI handleIncomingData(LPVOID lpParam)
 	return 0;
 }
 
+void RegisterProcess(int processid)
+{
+	Node* newNode = (Node*)malloc(sizeof(Node));
+	newNode->processId = processid;
+	newNode->senderType = 0;
+	char regString[] = "---registrationstring---\n";;
+	strcpy(newNode->value, regString);
+	char* sendBuff = Serialize(newNode);
+	int iResult = Send(connectSocket, sendBuff, MESSAGE_SIZE);
+	free(newNode);
+}
 
-
+void SendData(int processid, char* sendData, int size)
+{
+	Node* newNode = (Node*)malloc(sizeof(Node));
+	newNode->processId = processid;
+	newNode->senderType = 0;
+	strcpy(newNode->value, sendData);
+	char* sendBuff = Serialize(newNode);
+	int iResult = Send(connectSocket, sendBuff, size);
+	free(newNode);
+}

@@ -3,7 +3,6 @@
 #ifndef DataNode_H
 #define DataNode_H
 
-#include <time.h>
 #include "Limitations.h"
 
 typedef struct Node {
@@ -13,5 +12,5 @@ typedef struct Node {
 	
 }Node;
 
-#endif // 
+#endif  
 
