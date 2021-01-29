@@ -25,23 +25,11 @@
 #define CONNECT_SOCKET_OTHER3 7803
 
 bool InitializeWindowsSockets();
-DWORD WINAPI SendFromBuffer(LPVOID parameter);
-DWORD WINAPI ReceiveMessageClient(LPVOID parameter);
+
 DWORD WINAPI callBack(LPVOID lpParam);
 void RegisterProcess(int processid); 
 void SendData(int processid, char* sendData, int size);
-/*
-typedef struct receiveParameters {
-	SOCKET* listenSocket;
-	RoundBuffer* roundbuffer;
-}ReceiveParameters;
 
-typedef struct sendBufferParameters {
-	SOCKET* connectSocket;
-	RoundBuffer* roundbuffer;
-}SendBufferParameters;
-
-*/
 enum TipKlijenta {
 	GLAVNI = 0,
 	POMOCNI = 1
